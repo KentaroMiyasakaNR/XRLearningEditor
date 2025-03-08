@@ -8,25 +8,16 @@ use App\Models\Tweet;
 
 class CommentController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
         //
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create(Tweet $tweet)
     {
-      return view('tweets.comments.create', compact('tweet'));
+        return view('tweets.comments.create', compact('tweet'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request, Tweet $tweet)
     {
         $request->validate([
@@ -41,43 +32,31 @@ class CommentController extends Controller
         return redirect()->route('tweets.show', $tweet);
     }
 
-    /**
-     * Display the specified resource.
-     */
     public function show(Tweet $tweet, Comment $comment)
     {
-      return view('tweets.comments.show', compact('tweet', 'comment'));
+        return view('tweets.comments.show', compact('tweet', 'comment'));
     }
-    /**
-     * Show the form for editing the specified resource.
-     */
+
     public function edit(Tweet $tweet, Comment $comment)
     {
-      return view('tweets.comments.edit', compact('tweet', 'comment'));
+        return view('tweets.comments.edit', compact('tweet', 'comment'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Tweet $tweet, Comment $comment)
     {
-      $request->validate([
-        'comment' => 'required|string|max:255',
-      ]);
+        $request->validate([
+            'comment' => 'required|string|max:255',
+        ]);
     
-      $comment->update($request->only('comment'));
+        $comment->update($request->only('comment'));
     
-      return redirect()->route('tweets.comments.show', [$tweet, $comment]);
+        return redirect()->route('tweets.comments.show', [$tweet, $comment]);
     }
-    
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Tweet $tweet, Comment $comment)
     {
-      $comment->delete();
+        $comment->delete();
     
-      return redirect()->route('tweets.show', $tweet);
+        return redirect()->route('tweets.show', $tweet);
     }
-}
+} 
