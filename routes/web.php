@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TweetLikeController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\QuizController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/', function () {
@@ -28,6 +29,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('tweets.comments', CommentController::class);
     Route::post('/follow/{user}', [FollowController::class, 'store'])->name('follow.store');
     Route::delete('/follow/{user}', [FollowController::class, 'destroy'])->name('follow.destroy');
+    Route::resource('quizzes', QuizController::class);
+    Route::get('/quizzes/{quiz}/take', [QuizController::class, 'take'])->name('quizzes.take');
+    Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit'])->name('quizzes.submit');
 });
 
 require __DIR__.'/auth.php';
