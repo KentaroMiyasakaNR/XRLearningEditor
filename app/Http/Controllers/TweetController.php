@@ -1,19 +1,27 @@
 <?php
 
 namespace App\Http\Controllers;
-
+use App\Http\Requests\StoreTweetRequest;
+use App\Http\Requests\UpdateTweetRequest;
 use App\Models\Tweet;
 use Illuminate\Http\Request;
+use App\Services\TweetService;
+use Illuminate\Support\Facades\Gate;
 
 class TweetController extends Controller
 {
+    protected $tweetService;
+    public function __construct(TweetService $tweetService)
+    {
+        $this->tweetService = $tweetService;
+    }
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        // 🔽 liked のデータも合わせて取得するよう修正
-        $tweets = Tweet::with(['user', 'liked'])->latest()->get();
+        Gate::authorize('viewAny', Tweet::class);
+        $tweets = $this->tweetService->allTweets();
         // dd($tweets);
         return view('tweets.index', compact('tweets'));
     }
@@ -23,16 +31,14 @@ class TweetController extends Controller
      */
     public function create()
     {
+        Gate::authorize('create', Tweet::class);
         return view('tweets.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreTweetRequest $request)
     {
-      $request->validate([
-        'tweet' => 'required|max:255',
-      ]);
-  
-      $request->user()->tweets()->create($request->only('tweet'));
+      // バリデーションは削除
+      $tweet = $this->tweetService->createTweet($request);
   
       return redirect()->route('tweets.index');
     }
@@ -42,8 +48,9 @@ class TweetController extends Controller
      */
     public function show(Tweet $tweet)
     {
-      $tweet->load('comments');
-      return view('tweets.show', compact('tweet'));
+        Gate::authorize('view', $tweet);
+        $tweet->load('comments');
+        return view('tweets.show', compact('tweet'));
     }
     
 
@@ -52,18 +59,16 @@ class TweetController extends Controller
      */
     public function edit(Tweet $tweet)
     {
+      Gate::authorize('update', $tweet);
       return view('tweets.edit', compact('tweet'));
     }
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Tweet $tweet)
+    public function update(UpdateTweetRequest $request, Tweet $tweet)
     {
-      $request->validate([
-        'tweet' => 'required|max:255',
-      ]);
-  
-      $tweet->update($request->only('tweet'));
+      // バリデーションは削除
+      $updatedTweet = $this->tweetService->updateTweet($request, $tweet);
   
       return redirect()->route('tweets.show', $tweet);
     }
@@ -72,6 +77,7 @@ class TweetController extends Controller
      */
     public function destroy(Tweet $tweet)
     {
+      Gate::authorize('delete', $tweet);
       $tweet->delete();
   
       return redirect()->route('tweets.index');
@@ -84,7 +90,7 @@ class TweetController extends Controller
      */
     public function search(Request $request)
     {
-
+        Gate::authorize('viewAny', Tweet::class);
         $query = Tweet::query();
 
         // キーワードが指定されている場合のみ検索を実行

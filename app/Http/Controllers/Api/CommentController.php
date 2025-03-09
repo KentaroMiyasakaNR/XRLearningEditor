@@ -3,47 +3,69 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreCommentRequest;
+use App\Http\Requests\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Tweet;
+use App\Services\CommentService;
+use Illuminate\Support\Facades\Gate;
 
 class CommentController extends Controller
 {
-    public function index(Tweet $tweet)
-    {
-        $comments = $tweet->comments()->with('user')->get();
-        return response()->json($comments);
-    }
+  protected $commentService;
 
-    public function store(Request $request, Tweet $tweet)
-    {
-        $request->validate([
-            'comment' => 'required|string|max:255',
-        ]);
-        $comment = $tweet->comments()->create([
-            'comment' => $request->comment,
-            'user_id' => $request->user()->id,
-        ]);
-        return response()->json($comment, 201);
-    }
+  public function __construct(CommentService $commentService)
+  {
+    $this->commentService = $commentService;
+  }
 
-    public function show(Tweet $tweet, Comment $comment)
-    {
-        return response()->json($comment->load(['user', 'tweet']));
-    }
+  /**
+   * Display a listing of the resource.
+   */
+  public function index(Tweet $tweet)
+  {
+    Gate::authorize('viewAny', Comment::class);
+    $comments = $this->commentService->tweetComments($tweet);
+    return response()->json($comments);
+  }
 
-    public function update(Request $request, Tweet $tweet, Comment $comment)
-    {
-        $request->validate([
-            'comment' => 'required|string|max:255',
-        ]);
-        $comment->update($request->only('comment'));
-        return response()->json($comment->load(['user', 'tweet']));
-    }
+  /**
+   * Store a newly created resource in storage.
+   */
+  public function store(StoreCommentRequest $request, Tweet $tweet)
+  {
+    Gate::authorize('create', Comment::class);
+    $comment = $this->commentService->createComment($request, $tweet);
+    return response()->json($comment, 201);
+  }
 
-    public function destroy(Tweet $tweet, Comment $comment)
-    {
-        $comment->delete();
-        return response()->json(['message' => 'Comment deleted successfully']);
-    }
+  /**
+   * Display the specified resource.
+   */
+  public function show(Tweet $tweet, Comment $comment)
+  {
+    Gate::authorize('view', $comment);
+    return response()->json($comment->load(['user', 'tweet']));
+  }
+
+  /**
+   * Update the specified resource in storage.
+   */
+  public function update(UpdateCommentRequest $request, Tweet $tweet, Comment $comment)
+  {
+    Gate::authorize('update', $comment);
+    $comment = $this->commentService->updateComment($request, $comment);
+    return response()->json($comment);
+  }
+
+  /**
+   * Remove the specified resource from storage.
+   */
+  public function destroy(Tweet $tweet, Comment $comment)
+  {
+    Gate::authorize('delete', $comment);
+    $this->commentService->deleteComment($comment);
+    return response()->json(['message' => 'Comment deleted successfully']);
+  }
 }
+

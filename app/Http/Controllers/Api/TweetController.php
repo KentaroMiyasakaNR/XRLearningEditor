@@ -3,30 +3,40 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreTweetRequest;
+use App\Http\Requests\UpdateTweetRequest;
 use Illuminate\Http\Request;
-// 🔽 追加
 use App\Models\Tweet;
+use App\Services\TweetService;
+use Illuminate\Support\Facades\Gate;
 
 class TweetController extends Controller
 {
   /**
    * Display a listing of the resource.
    */
+
+  protected $tweetService;
+  public function __construct(TweetService $tweetService)
+  {
+    $this->tweetService = $tweetService;
+  }
   public function index()
   {
-    $tweets = Tweet::with('user')->latest()->get();
+    Gate::authorize('viewAny', Tweet::class);
+    $tweets = $this->tweetService->allTweets();
     return response()->json($tweets);
   }
 
   /**
    * Store a newly created resource in storage.
    */
-  public function store(Request $request)
+  public function store(StoreTweetRequest $request)
   {
-    $request->validate([
-      'tweet' => 'required|max:255',
-    ]);
-    $tweet = $request->user()->tweets()->create($request->only('tweet'));
+    Gate::authorize('create', Tweet::class);
+    // バリデーションは削除
+    $tweet = $this->tweetService->createTweet($request);
+
     return response()->json($tweet, 201);
   }
 
@@ -35,19 +45,17 @@ class TweetController extends Controller
    */
   public function show(Tweet $tweet)
   {
+    Gate::authorize('view', $tweet);
     return response()->json($tweet);
   }
 
   /**
    * Update the specified resource in storage.
    */
-  public function update(Request $request, Tweet $tweet)
+  public function update(UpdateTweetRequest $request, Tweet $tweet)
   {
-    $request->validate([
-      'tweet' => 'required|string|max:255',
-    ]);
-    $tweet->update($request->all());
-
+    Gate::authorize('update', $tweet);
+    $updatedTweet = $this->tweetService->updateTweet($request, $tweet);
     return response()->json($tweet);
   }
 
@@ -56,7 +64,8 @@ class TweetController extends Controller
    */
   public function destroy(Tweet $tweet)
   {
-    $tweet->delete();
+    Gate::authorize('delete', $tweet);
+    $this->tweetService->deleteTweet($tweet);
     return response()->json(['message' => 'Tweet deleted successfully']);
   }
 }

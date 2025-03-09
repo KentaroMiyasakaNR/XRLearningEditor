@@ -82,3 +82,38 @@ it('allows a user to delete their tweet', function () {
   $response->assertJson(['message' => 'Tweet deleted successfully']);
 });
 
+// 更新のテスト（他のユーザのデータが更新できないことを確認）
+it('does not allow unauthorized users to update a tweet', function () {
+  // ユーザを2人作成
+  $owner = User::factory()->create();
+  $otherUser = User::factory()->create();
+
+  // 一人目で Tweet を作成
+  $tweet = Tweet::factory()->create(['user_id' => $owner->id]);
+
+  // 二人目で認証
+  $token = $otherUser->createToken('test_token')->plainTextToken;
+
+  // 一人目の Tweet を二人目で更新（失敗するのが正しい）
+  $response = $this->putJson('/api/tweets/' . $tweet->id, ['tweet' => 'Updated tweet'], [
+    'Authorization' => 'Bearer ' . $token
+  ]);
+
+  $response->assertStatus(403); // Forbidden
+});
+
+// 削除のテスト（他のユーザのデータが削除できないことを確認）
+it('does not allow unauthorized users to delete a tweet', function () {
+  $owner = User::factory()->create();
+  $otherUser = User::factory()->create();
+
+  $tweet = Tweet::factory()->create(['user_id' => $owner->id]);
+
+  $token = $otherUser->createToken('test_token')->plainTextToken;
+
+  $response = $this->deleteJson('/api/tweets/' . $tweet->id, [], [
+    'Authorization' => 'Bearer ' . $token
+  ]);
+
+  $response->assertStatus(403); // Forbidden
+});
