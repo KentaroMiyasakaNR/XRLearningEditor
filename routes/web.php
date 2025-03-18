@@ -7,6 +7,7 @@ use App\Http\Controllers\TweetLikeController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\QuizController;
+use App\Http\Controllers\MediaController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/', function () {
@@ -32,6 +33,9 @@ Route::middleware('auth')->group(function () {
     Route::resource('quizzes', QuizController::class);
     Route::get('/quizzes/{quiz}/take', [QuizController::class, 'take'])->name('quizzes.take');
     Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit'])->name('quizzes.submit');
+    Route::get('/media', [MediaController::class, 'index'])->name('media.index');
+    Route::post('/media', [MediaController::class, 'store'])->name('media.store');
+    Route::delete('/media', [MediaController::class, 'destroy'])->name('media.destroy');
 });
 
 require __DIR__.'/auth.php';
