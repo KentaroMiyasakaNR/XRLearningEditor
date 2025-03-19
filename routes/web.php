@@ -39,4 +39,35 @@ Route::middleware('auth')->group(function () {
     Route::delete('/media', [MediaController::class, 'destroy'])->name('media.destroy');
 });
 
+// 一時的なメディアファイルのテスト用ルート
+Route::get('/test-media', function () {
+    $files = [
+        'videos' => \Illuminate\Support\Facades\Storage::disk('media')->files('videos'),
+        'images' => \Illuminate\Support\Facades\Storage::disk('media')->files('images'),
+    ];
+    
+    $videoUrls = [];
+    foreach ($files['videos'] as $file) {
+        $videoUrls[] = [
+            'path' => $file,
+            'url' => '/storage/media/' . $file,
+            'exists' => file_exists(public_path('storage/media/' . $file)),
+        ];
+    }
+    
+    $imageUrls = [];
+    foreach ($files['images'] as $file) {
+        $imageUrls[] = [
+            'path' => $file,
+            'url' => '/storage/media/' . $file,
+            'exists' => file_exists(public_path('storage/media/' . $file)),
+        ];
+    }
+    
+    return [
+        'video_files' => $videoUrls,
+        'image_files' => $imageUrls,
+    ];
+});
+
 require __DIR__.'/auth.php';

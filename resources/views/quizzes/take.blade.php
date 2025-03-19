@@ -36,7 +36,13 @@
                                         src="{{ $question->media_url }}" 
                                         class="w-full max-h-96 object-contain" 
                                         controls
-                                    ></video>
+                                        controlsList="nodownload"
+                                        preload="metadata"
+                                        playsinline
+                                        oncontextmenu="return false;"
+                                    >
+                                        お使いのブラウザは動画再生をサポートしていません。
+                                    </video>
                                 </div>
                                 @endif
                                 
