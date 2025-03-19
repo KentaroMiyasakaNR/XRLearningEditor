@@ -6,6 +6,7 @@ use App\Models\Quiz;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class QuizController extends Controller
 {
@@ -16,6 +17,19 @@ class QuizController extends Controller
     {
         $quizzes = Quiz::with('questions.options')->latest()->paginate(10);
         return view('quizzes.index', compact('quizzes'));
+    }
+
+    /**
+     * Display a listing of the user's quizzes for management.
+     */
+    public function manage()
+    {
+        $myQuizzes = Quiz::with('questions.options')
+            ->where('user_id', Auth::id())
+            ->latest()
+            ->paginate(10);
+        
+        return view('quizzes.manage', compact('myQuizzes'));
     }
 
     /**
@@ -248,12 +262,18 @@ class QuizController extends Controller
 
     public function take(Quiz $quiz)
     {
-        if ($quiz->user_id === Auth::id()) {
-            return redirect()->route('quizzes.show', $quiz)
-                ->with('error', '自分で作成したクイズは受験できません。');
-        }
-
         $quiz->load('questions.options');
+        
+        foreach($quiz->questions as $question) {
+            if ($question->media_name) {
+                $question->media_url = Storage::disk('media')->url('videos/' . $question->media_name);
+            }
+            
+            if ($question->explanation_image_name) {
+                $question->explanation_image_url = Storage::disk('media')->url('images/' . $question->explanation_image_name);
+            }
+        }
+        
         return view('quizzes.take', compact('quiz'));
     }
 
@@ -271,6 +291,14 @@ class QuizController extends Controller
         $results = [];
 
         foreach ($quiz->questions as $question) {
+            if ($question->media_name) {
+                $question->media_url = Storage::disk('media')->url('videos/' . $question->media_name);
+            }
+            
+            if ($question->explanation_image_name) {
+                $question->explanation_image_url = Storage::disk('media')->url('images/' . $question->explanation_image_name);
+            }
+            
             $totalPoints += $question->points;
             $correct = true;
             $questionResults = [];
@@ -299,6 +327,7 @@ class QuizController extends Controller
                 'points' => $question->points,
                 'earned_points' => $correct ? $question->points : 0,
                 'options' => $questionResults,
+                'is_correct' => $correct,
             ];
         }
 

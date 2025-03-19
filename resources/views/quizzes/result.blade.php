@@ -21,23 +21,37 @@
 
                     <div class="space-y-8">
                         @foreach ($quiz->questions as $question)
-                            <div class="border rounded-lg p-6 {{ $results[$question->id]['earned_points'] > 0 ? 'bg-green-50' : 'bg-red-50' }}">
+                            @php
+                                $result = $results[$question->id];
+                                $isCorrect = $result['is_correct'];
+                            @endphp
+                            <div class="border rounded-lg p-6 {{ $isCorrect ? 'bg-green-50' : 'bg-red-50' }}">
                                 <div class="flex justify-between items-start mb-4">
                                     <h4 class="text-lg font-medium">{{ $question->question_text }}</h4>
                                     <div class="text-right">
                                         <span class="bg-blue-100 text-blue-800 text-sm font-medium px-2.5 py-0.5 rounded">
-                                            {{ $results[$question->id]['earned_points'] }}/{{ $question->points }}点
+                                            {{ $result['earned_points'] }}/{{ $question->points }}点
                                         </span>
                                     </div>
                                 </div>
+                                
+                                @if ($question->media_name)
+                                <div class="mb-4">
+                                    <video 
+                                        src="{{ $question->media_url }}" 
+                                        class="w-full max-h-96 object-contain" 
+                                        controls
+                                    ></video>
+                                </div>
+                                @endif
                                 
                                 <div class="ml-4 space-y-2">
                                     <h5 class="text-md font-medium mb-2">選択肢：</h5>
                                     @foreach ($question->options as $option)
                                         @php
-                                            $result = $results[$question->id]['options'][$option->id];
-                                            $isCorrect = $result['is_correct'];
-                                            $userAnswer = $result['user_answer'];
+                                            $optionResult = $result['options'][$option->id];
+                                            $isCorrect = $optionResult['is_correct'];
+                                            $userAnswer = $optionResult['user_answer'];
                                         @endphp
                                         <div class="flex items-center gap-2">
                                             <span class="inline-flex items-center justify-center w-5 h-5 rounded-full text-xs
@@ -59,6 +73,25 @@
                                         </div>
                                     @endforeach
                                 </div>
+                                
+                                @if($question->explanation_text || $question->explanation_image_name)
+                                <div class="mt-4">
+                                    <button type="button" class="text-blue-600 hover:text-blue-800 show-explanation-btn" data-target="explanation-{{ $question->id }}">
+                                        解説を表示
+                                    </button>
+                                    
+                                    <div id="explanation-{{ $question->id }}" class="explanation-container mt-4 hidden p-4 bg-yellow-50 rounded-lg">
+                                        <h5 class="font-medium text-lg mb-2">解説</h5>
+                                        @if($question->explanation_text)
+                                            <p class="text-gray-700 mb-3">{{ $question->explanation_text }}</p>
+                                        @endif
+                                        
+                                        @if($question->explanation_image_name)
+                                            <img src="{{ $question->explanation_image_url }}" alt="解説画像" class="max-w-full h-auto rounded">
+                                        @endif
+                                    </div>
+                                </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -75,4 +108,25 @@
             </div>
         </div>
     </div>
+    
+    @push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 解説表示ボタンのイベントリスナーを設定
+            document.querySelectorAll('.show-explanation-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const targetId = this.dataset.target;
+                    const explanationContainer = document.getElementById(targetId);
+                    explanationContainer.classList.toggle('hidden');
+                    
+                    if (explanationContainer.classList.contains('hidden')) {
+                        this.textContent = '解説を表示';
+                    } else {
+                        this.textContent = '解説を隠す';
+                    }
+                });
+            });
+        });
+    </script>
+    @endpush
 </x-app-layout> 

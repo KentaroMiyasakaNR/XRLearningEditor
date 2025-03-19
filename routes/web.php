@@ -31,6 +31,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/follow/{user}', [FollowController::class, 'store'])->name('follow.store');
     Route::delete('/follow/{user}', [FollowController::class, 'destroy'])->name('follow.destroy');
     Route::resource('quizzes', QuizController::class);
+    Route::get('/quizzes-manage', [QuizController::class, 'manage'])->name('quizzes.manage');
     Route::get('/quizzes/{quiz}/take', [QuizController::class, 'take'])->name('quizzes.take');
     Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit'])->name('quizzes.submit');
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');

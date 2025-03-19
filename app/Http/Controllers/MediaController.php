@@ -22,7 +22,7 @@ class MediaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:mp4,webm,ogg,jpg,jpeg,png,gif|max:102400', // 100MB max
+            'file' => 'required|file|mimes:mp4,webm,ogg,mov,avi,flv,wmv,mkv,m4v,3gp,quicktime|max:102400', // 100MB max、各種動画ファイルに対応
             'type' => 'required|in:videos,images'
         ]);
 

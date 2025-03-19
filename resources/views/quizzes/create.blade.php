@@ -299,25 +299,50 @@
         // メディアアップロードモーダルを開く
         function openMediaUploadModal(type, button) {
             const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full';
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
             modal.innerHTML = `
-                <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white dark:bg-gray-800">
+                <div class="relative top-20 mx-auto p-6 border w-96 shadow-lg rounded-lg bg-white dark:bg-gray-800">
                     <div class="mt-3">
-                        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">メディアファイルのアップロード</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                                ${type === 'videos' ? '動画' : '画像'}ファイルのアップロード
+                            </h3>
+                            <button type="button" onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
                         <div class="mt-2">
                             <form id="mediaUploadForm" class="space-y-4">
-                                <input type="file" name="file" class="block w-full text-sm text-gray-500 dark:text-gray-400
-                                    file:mr-4 file:py-2 file:px-4
-                                    file:rounded-md file:border-0
-                                    file:text-sm file:font-semibold
-                                    file:bg-indigo-50 file:text-indigo-700
-                                    hover:file:bg-indigo-100" required>
+                                <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center cursor-pointer bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-all duration-200" id="dropzone">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                                        ${type === 'videos' ? '動画ファイル' : '画像ファイル'}をドラッグ＆ドロップ
+                                    </p>
+                                    ${type === 'videos' ? `<p class="text-xs text-gray-500 dark:text-gray-500">対応形式: MP4, MOV, AVI, WebM, Ogg などの動画形式</p>` : ''}
+                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1 mb-3">
+                                        または
+                                    </p>
+                                    <input type="file" name="file" id="fileInput" class="hidden" ${type === 'videos' ? 'accept="video/*"' : 'accept="image/*"'} required>
+                                    <button type="button" id="browseButton" class="px-6 py-2.5 text-sm font-medium rounded-md shadow-md bg-white text-blue-700 border-2 border-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                                        </svg>
+                                        ファイルを選択
+                                    </button>
+                                    <div id="selected-file" class="mt-3 text-sm text-gray-600 dark:text-gray-400 hidden">
+                                        選択済み: <span id="filename" class="font-medium"></span>
+                                    </div>
+                                </div>
                                 <input type="hidden" name="type" value="${type}">
-                                <div class="flex justify-end space-x-3">
-                                    <button type="button" onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md">
+                                <div class="flex justify-end space-x-3 mt-2">
+                                    <button type="button" onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                                         キャンセル
                                     </button>
-                                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">
+                                    <button type="submit" id="uploadButton" class="px-4 py-2 text-sm font-medium text-blue-700 bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-500 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                                         アップロード
                                     </button>
                                 </div>
@@ -328,10 +353,72 @@
             `;
             document.body.appendChild(modal);
 
+            // ドラッグ＆ドロップ機能
+            const dropzone = modal.querySelector('#dropzone');
+            const fileInput = modal.querySelector('#fileInput');
+            const browseButton = modal.querySelector('#browseButton');
+            const selectedFileDiv = modal.querySelector('#selected-file');
+            const filename = modal.querySelector('#filename');
+            const uploadButton = modal.querySelector('#uploadButton');
+
+            browseButton.addEventListener('click', () => {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    filename.textContent = fileInput.files[0].name;
+                    selectedFileDiv.classList.remove('hidden');
+                    uploadButton.disabled = false;
+                }
+            });
+
+            // ドラッグ&ドロップイベント
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, false);
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.add('border-blue-500');
+                    dropzone.classList.add('bg-blue-50');
+                    dropzone.classList.add('dark:bg-gray-800');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.remove('border-blue-500');
+                    dropzone.classList.remove('bg-blue-50');
+                    dropzone.classList.remove('dark:bg-gray-800');
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (dt.files.length > 0) {
+                    fileInput.files = dt.files;
+                    filename.textContent = dt.files[0].name;
+                    selectedFileDiv.classList.remove('hidden');
+                    uploadButton.disabled = false;
+                }
+            }, false);
+
             // フォーム送信のハンドリング
             modal.querySelector('#mediaUploadForm').addEventListener('submit', async function(e) {
                 e.preventDefault();
                 const formData = new FormData(this);
+                uploadButton.disabled = true;
+                uploadButton.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-700 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    アップロード中...
+                `;
                 
                 try {
                     const response = await fetch('/media', {
@@ -346,10 +433,13 @@
                         await fetchMediaFiles();
                         modal.remove();
                     } else {
-                        throw new Error('アップロードに失敗しました');
+                        const data = await response.json();
+                        throw new Error(data.message || 'アップロードに失敗しました');
                     }
                 } catch (error) {
                     alert(error.message);
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = 'アップロード';
                 }
             });
         }

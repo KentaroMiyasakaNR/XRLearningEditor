@@ -4,8 +4,8 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 {{ __('クイズ一覧') }}
             </h2>
-            <a href="{{ route('quizzes.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                新規クイズ作成
+            <a href="{{ route('quizzes.manage') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                クイズ管理
             </a>
         </div>
     </x-slot>
@@ -33,18 +33,9 @@
                                         <a href="{{ route('quizzes.show', $quiz) }}" class="text-blue-500 hover:text-blue-700">
                                             詳細
                                         </a>
-                                        @if ($quiz->user_id === Auth::id())
-                                            <a href="{{ route('quizzes.edit', $quiz) }}" class="text-green-500 hover:text-green-700">
-                                                編集
-                                            </a>
-                                            <form action="{{ route('quizzes.destroy', $quiz) }}" method="POST" class="inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-500 hover:text-red-700" onclick="return confirm('本当に削除しますか？')">
-                                                    削除
-                                                </button>
-                                            </form>
-                                        @endif
+                                        <a href="{{ route('quizzes.take', $quiz) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                            受験する
+                                        </a>
                                     </div>
                                 </div>
                             </div>
