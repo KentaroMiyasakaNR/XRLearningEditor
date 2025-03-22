@@ -11,14 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('options', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('question_id');
-            $table->text('option_text');
-            $table->boolean('is_correct');
-            $table->foreign('question_id')->references('id')->on('questions')->onDelete('cascade');
-            $table->timestamps();
-        });
+        // テーブルが存在しない場合のみ作成
+        if (!Schema::hasTable('options')) {
+            Schema::create('options', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('question_id');
+                $table->text('option_text');
+                $table->boolean('is_correct');
+                $table->foreign('question_id')->references('id')->on('questions')->onDelete('cascade');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
@@ -26,6 +29,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('options');
+        // このマイグレーションで作成された場合のみ削除
+        // Schema::dropIfExists('options');
     }
 };
