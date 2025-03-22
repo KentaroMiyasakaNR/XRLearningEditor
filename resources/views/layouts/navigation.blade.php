@@ -21,9 +21,6 @@
                     <x-nav-link :href="route('quizzes.create')" :active="request()->routeIs('quizzes.create')">
                         {{ __('問題作成') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('profile.show', auth()->user())" :active="request()->routeIs('profile.show')">
-                        {{ __('マイページ') }}
-                    </x-nav-link>
                 </div>
             </div>
 
