@@ -15,6 +15,8 @@ class Quiz extends Model
         'title',
         'description',
         'user_id',
+        'next_quiz_id_correct',
+        'next_quiz_id_incorrect',
     ];
 
     public function user(): BelongsTo

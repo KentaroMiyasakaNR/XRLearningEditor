@@ -17,6 +17,10 @@
                         <div class="mb-6">
                             <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">タイトル</label>
                             <input type="text" name="title" id="title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
+                            
+                            <!-- 正解時と不正解時の次のクイズIDを格納する隠しフィールド -->
+                            <input type="hidden" name="next_quiz_id_correct" id="next_quiz_id_correct" value="">
+                            <input type="hidden" name="next_quiz_id_incorrect" id="next_quiz_id_incorrect" value="">
                         </div>
                         <div class="mb-6">
                             <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
@@ -234,6 +238,10 @@
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">質問文</label>
                     <input type="text" name="questions[${questionCount}][question_text]" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
+                    
+                    <!-- 質問ごとの正解時と不正解時の次のクイズIDを格納する隠しフィールド -->
+                    <input type="hidden" name="questions[${questionCount}][next_quiz_id_correct]" value="">
+                    <input type="hidden" name="questions[${questionCount}][next_quiz_id_incorrect]" value="">
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">配点</label>

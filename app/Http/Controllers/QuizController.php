@@ -51,12 +51,16 @@ class QuizController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'next_quiz_id_correct' => 'nullable|exists:quizzes,id',
+                'next_quiz_id_incorrect' => 'nullable|exists:quizzes,id',
                 'questions' => 'required|array|min:1',
                 'questions.*.question_text' => 'required|string|max:1000',
                 'questions.*.points' => 'required|integer|min:1',
                 'questions.*.media_name' => 'nullable|string|max:255',
                 'questions.*.explanation_text' => 'nullable|string',
                 'questions.*.explanation_image_name' => 'nullable|string|max:255',
+                'questions.*.next_quiz_id_correct' => 'nullable|exists:quizzes,id',
+                'questions.*.next_quiz_id_incorrect' => 'nullable|exists:quizzes,id',
                 'questions.*.options' => 'required|array|min:2',
                 'questions.*.options.*.option_text' => 'required|string|max:500',
                 'questions.*.options.*.is_correct' => 'required|boolean',
@@ -97,6 +101,8 @@ class QuizController extends Controller
                 'title' => $request->title,
                 'description' => $request->description,
                 'user_id' => Auth::id(),
+                'next_quiz_id_correct' => $request->next_quiz_id_correct,
+                'next_quiz_id_incorrect' => $request->next_quiz_id_incorrect,
             ]);
 
             foreach ($request->questions as $questionData) {
@@ -106,6 +112,8 @@ class QuizController extends Controller
                     'media_name' => $questionData['media_name'] ?? null,
                     'explanation_text' => $questionData['explanation_text'] ?? null,
                     'explanation_image_name' => $questionData['explanation_image_name'] ?? null,
+                    'next_quiz_id_correct' => $questionData['next_quiz_id_correct'] ?? null,
+                    'next_quiz_id_incorrect' => $questionData['next_quiz_id_incorrect'] ?? null,
                 ]);
 
                 foreach ($questionData['options'] as $optionData) {
@@ -174,12 +182,16 @@ class QuizController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
+                'next_quiz_id_correct' => 'nullable|exists:quizzes,id',
+                'next_quiz_id_incorrect' => 'nullable|exists:quizzes,id',
                 'questions' => 'required|array|min:1',
                 'questions.*.question_text' => 'required|string|max:1000',
                 'questions.*.points' => 'required|integer|min:1',
                 'questions.*.media_name' => 'nullable|string|max:255',
                 'questions.*.explanation_text' => 'nullable|string',
                 'questions.*.explanation_image_name' => 'nullable|string|max:255',
+                'questions.*.next_quiz_id_correct' => 'nullable|exists:quizzes,id',
+                'questions.*.next_quiz_id_incorrect' => 'nullable|exists:quizzes,id',
                 'questions.*.options' => 'required|array|min:2',
                 'questions.*.options.*.option_text' => 'required|string|max:500',
                 'questions.*.options.*.is_correct' => 'required|boolean',
@@ -216,9 +228,12 @@ class QuizController extends Controller
                 }
             }
 
+            // クイズの基本情報を更新
             $quiz->update([
                 'title' => $request->title,
                 'description' => $request->description,
+                'next_quiz_id_correct' => $request->next_quiz_id_correct,
+                'next_quiz_id_incorrect' => $request->next_quiz_id_incorrect,
             ]);
 
             // 既存の質問と選択肢を削除
@@ -235,6 +250,8 @@ class QuizController extends Controller
                     'media_name' => $questionData['media_name'] ?? null,
                     'explanation_text' => $questionData['explanation_text'] ?? null,
                     'explanation_image_name' => $questionData['explanation_image_name'] ?? null,
+                    'next_quiz_id_correct' => $questionData['next_quiz_id_correct'] ?? null,
+                    'next_quiz_id_incorrect' => $questionData['next_quiz_id_incorrect'] ?? null,
                 ]);
 
                 \Log::info('Question created:', [

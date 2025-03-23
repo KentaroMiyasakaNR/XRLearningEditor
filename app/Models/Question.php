@@ -18,6 +18,8 @@ class Question extends Model
         'media_name',
         'explanation_text',
         'explanation_image_name',
+        'next_quiz_id_correct',
+        'next_quiz_id_incorrect',
     ];
 
     public function quiz(): BelongsTo
