@@ -62,7 +62,7 @@
         async function fetchExistingQuizzes() {
             try {
                 // APIエンドポイントからクイズデータを取得
-                const response = await fetch('/api/quizzes');
+                const response = await fetch('{{ url('/api/quizzes') }}');
                 const data = await response.json();
                 existingQuizzes = data;
                 updateNextQuizSelects();
@@ -95,7 +95,7 @@
         // メディアファイルを取得
         async function fetchMediaFiles() {
             try {
-                const response = await fetch('/media');
+                const response = await fetch('{{ route('media.index') }}');
                 
                 // レスポンスステータスをチェック
                 if (!response.ok && response.status !== 200) {
@@ -407,7 +407,7 @@
                 
                 try {
                     // JSONデータとして送信
-                    const response = await fetch('/media', {
+                    const response = await fetch('{{ route('media.store') }}', {
                         method: 'POST',
                         headers: {
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
