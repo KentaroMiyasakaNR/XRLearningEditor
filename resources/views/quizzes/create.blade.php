@@ -18,7 +18,6 @@
                             <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">タイトル</label>
                             <input type="text" name="title" id="title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
                         </div>
-
                         <div class="mb-6">
                             <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
                             <textarea name="description" id="description" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
@@ -62,12 +61,16 @@
         // 既存のクイズを取得
         async function fetchExistingQuizzes() {
             try {
+                // APIエンドポイントからクイズデータを取得
                 const response = await fetch('/api/quizzes');
                 const data = await response.json();
                 existingQuizzes = data;
                 updateNextQuizSelects();
             } catch (error) {
                 console.error('クイズの取得に失敗しました:', error);
+                // エラーが発生した場合は空の配列を使用
+                existingQuizzes = [];
+                updateNextQuizSelects();
             }
         }
 
@@ -93,11 +96,41 @@
         async function fetchMediaFiles() {
             try {
                 const response = await fetch('/media');
+                
+                // レスポンスステータスをチェック
+                if (!response.ok && response.status !== 200) {
+                    throw new Error(`サーバーエラー：HTTPステータス ${response.status}`);
+                }
+                
+                // レスポンスのContent-Typeをチェック
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    console.warn("JSONではないレスポンスを受信しました。エラー回復を試みます。");
+                    // JSONではない場合は空の結果を使用
+                    mediaFiles = { videos: [], images: [] };
+                    updateMediaSelects();
+                    return;
+                }
+                
                 const data = await response.json();
-                mediaFiles = data;
+                
+                // APIがエラーオブジェクトを返した場合でも動画と画像の配列が含まれていることを確認
+                if (data.videos !== undefined && data.images !== undefined) {
+                    mediaFiles = data;
+                } else {
+                    // データ形式が期待通りでない場合は、空の配列を使用
+                    console.warn("予期しないデータ形式を受信しました", data);
+                    mediaFiles = { 
+                        videos: Array.isArray(data.videos) ? data.videos : [], 
+                        images: Array.isArray(data.images) ? data.images : []
+                    };
+                }
                 updateMediaSelects();
             } catch (error) {
                 console.error('メディアファイルの取得に失敗しました:', error);
+                // エラーが発生しても続行できるよう、空のオブジェクトを設定
+                mediaFiles = { videos: [], images: [] };
+                updateMediaSelects();
             }
         }
 
@@ -112,7 +145,7 @@
                 mediaFiles.videos.forEach(video => {
                     const option = document.createElement('option');
                     option.value = video.filename;
-                    option.textContent = video.filename;
+                    option.textContent = video.title || video.filename;
                     select.appendChild(option);
                 });
                 if (currentValue) {
@@ -126,7 +159,7 @@
                 mediaFiles.images.forEach(image => {
                     const option = document.createElement('option');
                     option.value = image.filename;
-                    option.textContent = image.filename;
+                    option.textContent = image.title || image.filename;
                     select.appendChild(option);
                 });
                 if (currentValue) {
@@ -305,7 +338,7 @@
                     <div class="mt-3">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                ${type === 'videos' ? '動画' : '画像'}ファイルのアップロード
+                                ${type === 'videos' ? '動画' : '画像'}ファイル名の登録
                             </h3>
                             <button type="button" onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -315,35 +348,34 @@
                         </div>
                         <div class="mt-2">
                             <form id="mediaUploadForm" class="space-y-4">
-                                <div class="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center cursor-pointer bg-gray-50 dark:bg-gray-900/50 hover:bg-gray-100 dark:hover:bg-gray-900 transition-all duration-200" id="dropzone">
-                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                    </svg>
-                                    <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                                        ${type === 'videos' ? '動画ファイル' : '画像ファイル'}をドラッグ＆ドロップ
-                                    </p>
-                                    ${type === 'videos' ? `<p class="text-xs text-gray-500 dark:text-gray-500">対応形式: MP4, MOV, AVI, WebM, Ogg などの動画形式</p>` : ''}
-                                    <p class="text-xs text-gray-500 dark:text-gray-500 mt-1 mb-3">
-                                        または
-                                    </p>
-                                    <input type="file" name="file" id="fileInput" class="hidden" ${type === 'videos' ? 'accept="video/*"' : 'accept="image/*"'} required>
-                                    <button type="button" id="browseButton" class="px-6 py-2.5 text-sm font-medium rounded-md shadow-md bg-white text-blue-700 border-2 border-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                        <svg class="w-5 h-5 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                                        </svg>
-                                        ファイルを選択
-                                    </button>
-                                    <div id="selected-file" class="mt-3 text-sm text-gray-600 dark:text-gray-400 hidden">
-                                        選択済み: <span id="filename" class="font-medium"></span>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="filename" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ファイル名 <span class="text-red-500">*</span></label>
+                                        <input type="text" name="filename" id="filename" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="${type === 'videos' ? '例: sample_video.mp4' : '例: sample_image.jpg'}" required>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            ${type === 'videos' ? '動画ファイル名を入力してください。Unity側でこの名前が参照されます。' : '画像ファイル名を入力してください。'}
+                                        </p>
                                     </div>
+                                    
+                                    <div>
+                                        <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">タイトル</label>
+                                        <input type="text" name="title" id="title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="表示用のタイトル（省略可）">
+                                    </div>
+                                    
+                                    <div>
+                                        <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
+                                        <textarea name="description" id="description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="メディアの説明（省略可）"></textarea>
+                                    </div>
+                                    
+                                    <input type="hidden" name="type" value="${type}">
                                 </div>
-                                <input type="hidden" name="type" value="${type}">
+                                
                                 <div class="flex justify-end space-x-3 mt-2">
                                     <button type="button" onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                                         キャンセル
                                     </button>
-                                    <button type="submit" id="uploadButton" class="px-4 py-2 text-sm font-medium text-blue-700 bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-500 rounded-md disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                                        アップロード
+                                    <button type="submit" id="uploadButton" class="px-4 py-2 text-sm font-medium text-blue-700 bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-500 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                                        登録
                                     </button>
                                 </div>
                             </form>
@@ -353,93 +385,109 @@
             `;
             document.body.appendChild(modal);
 
-            // ドラッグ＆ドロップ機能
-            const dropzone = modal.querySelector('#dropzone');
-            const fileInput = modal.querySelector('#fileInput');
-            const browseButton = modal.querySelector('#browseButton');
-            const selectedFileDiv = modal.querySelector('#selected-file');
-            const filename = modal.querySelector('#filename');
+            const form = modal.querySelector('#mediaUploadForm');
             const uploadButton = modal.querySelector('#uploadButton');
 
-            browseButton.addEventListener('click', () => {
-                fileInput.click();
-            });
-
-            fileInput.addEventListener('change', () => {
-                if (fileInput.files.length > 0) {
-                    filename.textContent = fileInput.files[0].name;
-                    selectedFileDiv.classList.remove('hidden');
-                    uploadButton.disabled = false;
-                }
-            });
-
-            // ドラッグ&ドロップイベント
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropzone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }, false);
-            });
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                dropzone.addEventListener(eventName, () => {
-                    dropzone.classList.add('border-blue-500');
-                    dropzone.classList.add('bg-blue-50');
-                    dropzone.classList.add('dark:bg-gray-800');
-                }, false);
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                dropzone.addEventListener(eventName, () => {
-                    dropzone.classList.remove('border-blue-500');
-                    dropzone.classList.remove('bg-blue-50');
-                    dropzone.classList.remove('dark:bg-gray-800');
-                }, false);
-            });
-
-            dropzone.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                if (dt.files.length > 0) {
-                    fileInput.files = dt.files;
-                    filename.textContent = dt.files[0].name;
-                    selectedFileDiv.classList.remove('hidden');
-                    uploadButton.disabled = false;
-                }
-            }, false);
-
             // フォーム送信のハンドリング
-            modal.querySelector('#mediaUploadForm').addEventListener('submit', async function(e) {
+            form.addEventListener('submit', async function(e) {
                 e.preventDefault();
+                
+                // フォームデータを取得
                 const formData = new FormData(this);
+                
+                // ボタンを無効化
                 uploadButton.disabled = true;
                 uploadButton.innerHTML = `
                     <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-700 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    アップロード中...
+                    登録中...
                 `;
                 
                 try {
+                    // JSONデータとして送信
                     const response = await fetch('/media', {
                         method: 'POST',
-                        body: formData,
                         headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                        }
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: formData.get('filename'),
+                            type: formData.get('type'),
+                            title: formData.get('title'),
+                            description: formData.get('description')
+                        })
                     });
 
+                    // Content-Typeをチェック
+                    const contentType = response.headers.get("content-type");
+                    if (contentType && contentType.indexOf("application/json") === -1) {
+                        // エラーメッセージをより具体的に
+                        const errorText = await response.text();
+                        let errorMessage = "サーバーエラーが発生しました。詳細: ";
+                        
+                        // HTMLからエラーメッセージを抽出しようと試みる
+                        if (errorText.includes("<title>")) {
+                            const titleMatch = errorText.match(/<title>(.*?)<\/title>/);
+                            if (titleMatch && titleMatch[1]) {
+                                errorMessage += titleMatch[1];
+                            }
+                        } else {
+                            // HTML以外の応答の場合
+                            errorMessage += "応答タイプが予期しないものでした";
+                        }
+                        
+                        console.error('非JSONレスポンス:', errorText.substring(0, 500) + '...');
+                        throw new Error(errorMessage);
+                    }
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                    } catch (jsonError) {
+                        throw new Error("レスポンスのJSONパースに失敗しました。サーバーエラーの可能性があります。");
+                    }
+                    
                     if (response.ok) {
                         await fetchMediaFiles();
                         modal.remove();
                     } else {
-                        const data = await response.json();
-                        throw new Error(data.message || 'アップロードに失敗しました');
+                        // エラーメッセージをより詳細に表示
+                        if (data.errors) {
+                            const errorMessages = [];
+                            for (const [field, messages] of Object.entries(data.errors)) {
+                                errorMessages.push(...messages);
+                            }
+                            throw new Error(errorMessages.join('\n'));
+                        } else if (data.message) {
+                            throw new Error(data.message);
+                        } else {
+                            throw new Error('登録に失敗しました。');
+                        }
                     }
                 } catch (error) {
-                    alert(error.message);
+                    // エラーメッセージをモーダル内に表示
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'text-red-500 text-sm mt-2 bg-red-50 p-2 rounded';
+                    errorDiv.textContent = error.message;
+                    
+                    // エラーの詳細をコンソールに記録
+                    console.error('登録エラー:', error);
+                    
+                    // 既存のエラーメッセージがあれば削除
+                    const existingError = modal.querySelector('.text-red-500');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    
+                    // フォームの上に表示
+                    form.parentNode.insertBefore(errorDiv, form);
+                    
                     uploadButton.disabled = false;
-                    uploadButton.textContent = 'アップロード';
+                    uploadButton.textContent = '登録';
                 }
             });
         }

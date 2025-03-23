@@ -21,3 +21,8 @@ Route::middleware('auth:sanctum')->group(function () {
   Route::delete('tweets/{tweet}/like', [TweetLikeController::class, 'destroy']);
   Route::apiResource('tweets.comments', CommentController::class);
 });
+
+// クイズ一覧を取得するAPI
+Route::get('/quizzes', function() {
+    return \App\Models\Quiz::select('id', 'title')->get();
+});

@@ -2,74 +2,161 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Media;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class MediaController extends Controller
 {
-    public function index()
+    /**
+     * コンストラクタでミドルウェアを設定
+     */
+    public function __construct()
     {
-        $videos = $this->getMediaFiles('videos');
-        $images = $this->getMediaFiles('images');
-
-        return response()->json([
-            'videos' => $videos,
-            'images' => $images
-        ]);
+        // このコントローラーでは、すべてのレスポンスをJSONとして扱う
+        // ミドルウェアはroutesファイルで設定する必要があります
     }
 
+    /**
+     * メディア一覧を取得
+     */
+    public function index(Request $request)
+    {
+        // JSONレスポンスを強制
+        $request->headers->set('Accept', 'application/json');
+        
+        try {
+            // 環境情報をログに記録（デバッグ用）
+            Log::info('メディア一覧取得: 環境 = ' . app()->environment());
+            
+            // データベースからメディア情報を取得
+            $videos = Media::where('type', 'videos')->get(['id', 'filename', 'title']);
+            $images = Media::where('type', 'images')->get(['id', 'filename', 'title']);
+
+            return response()->json([
+                'videos' => $videos,
+                'images' => $images
+            ]);
+        } catch (\Exception $e) {
+            // 詳細なエラー情報をログに記録
+            Log::error('メディアファイル一覧取得エラー: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'メディアファイルの取得に失敗しました: ' . $e->getMessage(),
+                'videos' => [],
+                'images' => []
+            ], 200); // 200を返すことでフロントエンドの処理を継続させる
+        }
+    }
+
+    /**
+     * 新しいメディア情報を登録
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'file' => 'required|file|mimes:mp4,webm,ogg,mov,avi,flv,wmv,mkv,m4v,3gp,quicktime|max:102400', // 100MB max、各種動画ファイルに対応
-            'type' => 'required|in:videos,images'
-        ]);
+        // JSONレスポンスを強制
+        $request->headers->set('Accept', 'application/json');
+        
+        try {
+            // 環境情報をログに記録（デバッグ用）
+            Log::info('メディア情報登録: 環境 = ' . app()->environment(), [
+                'type' => $request->input('type')
+            ]);
+            
+            $request->validate([
+                'filename' => 'required|string|max:255',
+                'type' => 'required|in:videos,images',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+            ], [
+                'filename.required' => 'ファイル名は必須です。',
+                'filename.max' => 'ファイル名は255文字以内で入力してください。',
+                'type.required' => 'メディアタイプは必須です。',
+                'type.in' => '無効なメディアタイプです。',
+                'title.max' => 'タイトルは255文字以内で入力してください。',
+            ]);
 
-        $file = $request->file('file');
-        $type = $request->input('type');
-        $filename = $file->getClientOriginalName();
+            // 既存のエントリを確認
+            $existingMedia = Media::where('filename', $request->filename)
+                                  ->where('type', $request->type)
+                                  ->first();
+            
+            if ($existingMedia) {
+                return response()->json([
+                    'message' => 'このファイル名は既に登録されています。',
+                    'media' => $existingMedia
+                ], 422);
+            }
 
-        // ファイル名が重複する場合は、タイムスタンプを付加
-        if (Storage::disk('media')->exists($type . '/' . $filename)) {
-            $filename = time() . '_' . $filename;
+            // 新しいメディア情報を登録
+            $media = Media::create([
+                'filename' => $request->filename,
+                'type' => $request->type,
+                'title' => $request->title ?? $request->filename,
+                'description' => $request->description,
+                'user_id' => Auth::id(),
+            ]);
+
+            Log::info('メディア情報を登録しました', ['id' => $media->id, 'filename' => $media->filename]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'メディア情報を登録しました。',
+                'media' => $media
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // バリデーションエラーをそのまま返す
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // その他のエラー
+            Log::error('メディア情報登録エラー: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'メディア情報の登録に失敗しました: ' . $e->getMessage()
+            ], 500);
         }
-
-        $path = $file->storeAs($type, $filename, 'media');
-
-        return response()->json([
-            'success' => true,
-            'filename' => $filename,
-            'path' => $path
-        ]);
     }
 
+    /**
+     * メディア情報を削除
+     */
     public function destroy(Request $request)
     {
-        $request->validate([
-            'filename' => 'required|string',
-            'type' => 'required|in:videos,images'
-        ]);
+        // JSONレスポンスを強制
+        $request->headers->set('Accept', 'application/json');
+        
+        try {
+            $request->validate([
+                'id' => 'required|exists:media,id',
+            ]);
 
-        $path = $request->input('type') . '/' . $request->input('filename');
-
-        if (Storage::disk('media')->exists($path)) {
-            Storage::disk('media')->delete($path);
-            return response()->json(['success' => true]);
+            $media = Media::findOrFail($request->id);
+            $media->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'メディア情報を削除しました。'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('メディア情報削除エラー: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'メディア情報の削除に失敗しました: ' . $e->getMessage()
+            ], 500);
         }
-
-        return response()->json(['success' => false, 'message' => 'File not found'], 404);
-    }
-
-    private function getMediaFiles($type)
-    {
-        $files = Storage::disk('media')->files($type);
-        return collect($files)->map(function ($file) {
-            return [
-                'filename' => basename($file),
-                'path' => $file,
-                'url' => Storage::disk('media')->url($file)
-            ];
-        })->values();
     }
 } 
