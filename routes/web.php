@@ -8,11 +8,15 @@ use App\Http\Controllers\FollowController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\MediaController;
+use Illuminate\Support\Facades\Auth;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/', function () {
-    return view('welcome');
-});
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
+    return redirect()->route('login');
+})->name('home');
 
 Route::get('/dashboard', function () {
     return view('dashboard');

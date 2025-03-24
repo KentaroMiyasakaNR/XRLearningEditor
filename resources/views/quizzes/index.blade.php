@@ -2,11 +2,16 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('クイズ一覧') }}
+                {{ __('マイクイズ一覧') }}
             </h2>
-            <a href="{{ route('quizzes.manage') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-                クイズ管理
-            </a>
+            <div class="flex gap-2">
+                <a href="{{ route('quizzes.create') }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    新規クイズ作成
+                </a>
+                <a href="{{ route('quizzes.manage') }}" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                    クイズ管理
+                </a>
+            </div>
         </div>
     </x-slot>
 
@@ -20,27 +25,35 @@
                         </div>
                     @endif
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        @foreach ($quizzes as $quiz)
-                            <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
-                                <h3 class="text-lg font-semibold mb-2">{{ $quiz->title }}</h3>
-                                <p class="text-gray-600 mb-4">{{ Str::limit($quiz->description, 100) }}</p>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-500">
-                                        {{ $quiz->questions->count() }}問
-                                    </span>
-                                    <div class="space-x-2">
-                                        <a href="{{ route('quizzes.show', $quiz) }}" class="text-blue-500 hover:text-blue-700">
-                                            詳細
-                                        </a>
-                                        <a href="{{ route('quizzes.take', $quiz) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">
-                                            受験する
-                                        </a>
+                    <h3 class="text-lg font-medium mb-4">自分が作成したクイズ</h3>
+
+                    @if($quizzes->isEmpty())
+                        <div class="text-center py-8 text-gray-500">
+                            作成したクイズはありません。新規クイズを作成してみましょう。
+                        </div>
+                    @else
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            @foreach ($quizzes as $quiz)
+                                <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                                    <h3 class="text-lg font-semibold mb-2">{{ $quiz->title }}</h3>
+                                    <p class="text-gray-600 mb-4">{{ Str::limit($quiz->description, 100) }}</p>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-500">
+                                            {{ $quiz->questions->count() }}問
+                                        </span>
+                                        <div class="space-x-2">
+                                            <a href="{{ route('quizzes.show', $quiz) }}" class="text-blue-500 hover:text-blue-700">
+                                                詳細
+                                            </a>
+                                            <a href="{{ route('quizzes.take', $quiz) }}" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                                受験する
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        @endforeach
-                    </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     <div class="mt-4">
                         {{ $quizzes->links() }}
