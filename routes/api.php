@@ -42,6 +42,13 @@ Route::get('/quizzes-with-questions', function() {
             'updated_at',
             'next_quiz_id_correct',
             'next_quiz_id_incorrect'
-        );
+        )->with(['options' => function($optionQuery) {
+            $optionQuery->select(
+                'id',
+                'question_id',
+                'option_text',
+                'is_correct'
+            );
+        }]);
     }])->get();
 });
