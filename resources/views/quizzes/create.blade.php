@@ -9,6 +9,22 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
+                    <!-- メディアファイル名登録ボタン -->
+                    <div class="flex justify-end space-x-4 mb-4">
+                        <button type="button" onclick="openMediaRegistrationModal('images')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            画像ファイル名の登録
+                        </button>
+                        <button type="button" onclick="openMediaRegistrationModal('videos')" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            動画ファイル名の登録
+                        </button>
+                    </div>
+                    
                     <!-- エラーメッセージ表示エリア -->
                     <div id="error-messages" class="mb-4 text-red-600 dark:text-red-400"></div>
                     
@@ -249,14 +265,11 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">メディアファイル</label>
-                    <div class="mt-1 flex items-center gap-4">
-                        <select name="questions[${questionCount}][media_name]" class="flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <div class="mt-1">
+                        <select name="questions[${questionCount}][media_name]" class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">なし</option>
                             <!-- 動画ファイルがここに動的に追加されます -->
                         </select>
-                        <button type="button" onclick="openMediaUploadModal('videos', this)" class="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
-                            アップロード
-                        </button>
                     </div>
                 </div>
                 <div class="mb-4">
@@ -265,14 +278,11 @@
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">解説画像</label>
-                    <div class="mt-1 flex items-center gap-4">
-                        <select name="questions[${questionCount}][explanation_image_name]" class="flex-1 rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                    <div class="mt-1">
+                        <select name="questions[${questionCount}][explanation_image_name]" class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                             <option value="">なし</option>
                             <!-- 画像ファイルがここに動的に追加されます -->
                         </select>
-                        <button type="button" onclick="openMediaUploadModal('images', this)" class="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
-                            アップロード
-                        </button>
                     </div>
                 </div>
                 <div class="options-container">
@@ -302,6 +312,9 @@
             `;
             container.appendChild(questionDiv);
             questionCount++;
+            
+            // 新しい質問に対してメディア選択肢を更新
+            updateMediaSelects();
         }
 
         function removeQuestion(button) {
@@ -337,8 +350,8 @@
             }
         }
 
-        // メディアアップロードモーダルを開く
-        function openMediaUploadModal(type, button) {
+        // メディアファイル名登録モーダルを開く
+        function openMediaRegistrationModal(type) {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
             modal.innerHTML = `
@@ -358,10 +371,18 @@
                             <form id="mediaUploadForm" class="space-y-4">
                                 <div class="space-y-4">
                                     <div>
-                                        <label for="filename" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ファイル名 <span class="text-red-500">*</span></label>
-                                        <input type="text" name="filename" id="filename" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="${type === 'videos' ? '例: sample_video.mp4' : '例: sample_image.jpg'}" required>
+                                        <label for="file_select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ファイルを選択 <span class="text-red-500">*</span></label>
+                                        <input type="file" name="file_select" id="file_select" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" accept="${type === 'videos' ? 'video/*' : 'image/*'}" required multiple>
                                         <p class="mt-1 text-xs text-gray-500">
-                                            ${type === 'videos' ? '動画ファイル名を入力してください。Unity側でこの名前が参照されます。' : '画像ファイル名を入力してください。'}
+                                            ${type === 'videos' ? '動画ファイルを選択してください。複数選択可能です。ファイル名だけが取得されます。' : '画像ファイルを選択してください。複数選択可能です。ファイル名だけが取得されます。'}
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <label for="filename" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ファイル名 <span class="text-red-500">*</span></label>
+                                        <input type="text" name="filename" id="filename" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="${type === 'videos' ? '例: sample_video.mp4' : '例: sample_image.jpg'}" required readonly>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            ${type === 'videos' ? '選択した動画ファイルの名前が自動的に入力されます。Unity側でこの名前が参照されます。' : '選択した画像ファイルの名前が自動的に入力されます。'}
                                         </p>
                                     </div>
                                     
@@ -395,6 +416,95 @@
 
             const form = modal.querySelector('#mediaUploadForm');
             const uploadButton = modal.querySelector('#uploadButton');
+            const fileInput = modal.querySelector('#file_select');
+            const filenameInput = modal.querySelector('#filename');
+            const titleInput = modal.querySelector('#title');
+
+            // ファイル選択時にファイル名を自動入力
+            fileInput.addEventListener('change', function(e) {
+                if (this.files && this.files.length > 0) {
+                    // 複数のファイルが選択された場合の処理
+                    if (this.files.length > 1) {
+                        // 選択されたファイルの数を表示
+                        const fileCount = this.files.length;
+                        filenameInput.value = `${fileCount}個のファイルを選択中`;
+                        
+                        // 選択中のファイル情報を表示するためのコンテナを作成または取得
+                        let filesListContainer = modal.querySelector('.selected-files-list');
+                        if (!filesListContainer) {
+                            filesListContainer = document.createElement('div');
+                            filesListContainer.className = 'selected-files-list mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-md max-h-32 overflow-y-auto';
+                            filenameInput.parentNode.appendChild(filesListContainer);
+                        }
+                        
+                        // 選択されたファイルのリストを表示
+                        filesListContainer.innerHTML = '<p class="text-xs font-medium mb-1">選択されたファイル:</p>';
+                        const filesList = document.createElement('ul');
+                        filesList.className = 'text-xs space-y-1';
+                        
+                        // 各ファイル名をリストに追加
+                        for (let i = 0; i < this.files.length; i++) {
+                            const fileName = this.files[i].name;
+                            const listItem = document.createElement('li');
+                            listItem.className = 'flex items-center justify-between';
+                            
+                            const fileNameSpan = document.createElement('span');
+                            fileNameSpan.textContent = fileName;
+                            fileNameSpan.className = 'truncate';
+                            listItem.appendChild(fileNameSpan);
+                            
+                            const addButton = document.createElement('button');
+                            addButton.type = 'button';
+                            addButton.textContent = '登録';
+                            addButton.className = 'ml-2 text-xs text-blue-600 hover:text-blue-800';
+                            addButton.dataset.filename = fileName;
+                            addButton.onclick = function() {
+                                filenameInput.value = this.dataset.filename;
+                                
+                                // タイトルが未入力の場合、ファイル名から自動生成
+                                if (!titleInput.value) {
+                                    const titleWithoutExtension = this.dataset.filename.split('.').slice(0, -1).join('.');
+                                    titleInput.value = titleWithoutExtension
+                                        .replace(/_/g, ' ')
+                                        .replace(/-/g, ' ')
+                                        .replace(/\b\w/g, l => l.toUpperCase());
+                                }
+                            };
+                            listItem.appendChild(addButton);
+                            
+                            filesList.appendChild(listItem);
+                        }
+                        
+                        filesListContainer.appendChild(filesList);
+                        
+                        // ファイル選択中はファイル名を手動編集できるようにする
+                        filenameInput.readOnly = false;
+                    } else {
+                        // 単一ファイルの場合は従来の処理
+                        const filename = this.files[0].name;
+                        filenameInput.value = filename;
+                        
+                        // ファイルリストが表示されていれば削除
+                        const filesListContainer = modal.querySelector('.selected-files-list');
+                        if (filesListContainer) {
+                            filesListContainer.remove();
+                        }
+                        
+                        // タイトルが未入力の場合は、拡張子を除いたファイル名をデフォルトのタイトルとして設定
+                        if (!titleInput.value) {
+                            const titleWithoutExtension = filename.split('.').slice(0, -1).join('.');
+                            // スネークケースやケバブケースをスペースに変換してタイトルっぽく
+                            titleInput.value = titleWithoutExtension
+                                .replace(/_/g, ' ')
+                                .replace(/-/g, ' ')
+                                .replace(/\b\w/g, l => l.toUpperCase()); // 単語の先頭を大文字に
+                        }
+                        
+                        // 単一ファイルの場合は読み取り専用に
+                        filenameInput.readOnly = true;
+                    }
+                }
+            });
 
             // フォーム送信のハンドリング
             form.addEventListener('submit', async function(e) {
@@ -414,66 +524,264 @@
                 `;
                 
                 try {
-                    // JSONデータとして送信
-                    const response = await fetch('{{ route('media.store') }}', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                            'Accept': 'application/json',
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            filename: formData.get('filename'),
-                            type: formData.get('type'),
-                            title: formData.get('title'),
-                            description: formData.get('description')
-                        })
-                    });
-
-                    // Content-Typeをチェック
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.indexOf("application/json") === -1) {
-                        // エラーメッセージをより具体的に
-                        const errorText = await response.text();
-                        let errorMessage = "サーバーエラーが発生しました。詳細: ";
+                    // 複数ファイルが選択されている場合
+                    if (fileInput.files && fileInput.files.length > 1) {
+                        const files = fileInput.files;
+                        const type = formData.get('type');
+                        const description = formData.get('description');
+                        let successCount = 0;
+                        let errorMessages = [];
                         
-                        // HTMLからエラーメッセージを抽出しようと試みる
-                        if (errorText.includes("<title>")) {
-                            const titleMatch = errorText.match(/<title>(.*?)<\/title>/);
-                            if (titleMatch && titleMatch[1]) {
-                                errorMessage += titleMatch[1];
+                        // プログレスバーを表示
+                        const progressContainer = document.createElement('div');
+                        progressContainer.className = 'mt-4';
+                        progressContainer.innerHTML = `
+                            <p class="text-sm mb-1">ファイル登録中... <span id="progress-text">0/${files.length}</span></p>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        `;
+                        form.appendChild(progressContainer);
+                        
+                        const progressBar = progressContainer.querySelector('#progress-bar');
+                        const progressText = progressContainer.querySelector('#progress-text');
+
+                        // ファイルごとに個別に登録リクエストを送信
+                        for (let i = 0; i < files.length; i++) {
+                            const fileName = files[i].name;
+                            
+                            // ファイル名から自動的にタイトルを生成（拡張子を除去）
+                            const titleWithoutExtension = fileName.split('.').slice(0, -1).join('.');
+                            const autoTitle = titleWithoutExtension
+                                .replace(/_/g, ' ')
+                                .replace(/-/g, ' ')
+                                .replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            try {
+                                const response = await fetch('{{ route('media.store') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        filename: fileName,
+                                        type: type,
+                                        title: autoTitle,  // ファイル名から自動生成したタイトルを使用
+                                        description: description
+                                    })
+                                });
+                                
+                                // レスポンスの処理
+                                if (response.ok) {
+                                    successCount++;
+                                } else {
+                                    const errorData = await response.json();
+                                    console.log(`エラー詳細 (${fileName}):`, errorData); // エラー詳細をコンソールに出力
+                                    
+                                    if (errorData.errors) {
+                                        const errors = Object.values(errorData.errors).flat();
+                                        errorMessages.push(`${fileName}: ${errors.join(', ')}`);
+                                    } else if (errorData.message) {
+                                        errorMessages.push(`${fileName}: ${errorData.message}`);
+                                    } else {
+                                        errorMessages.push(`${fileName}: 登録に失敗しました`);
+                                    }
+                                }
+                            } catch (error) {
+                                errorMessages.push(`${fileName}: ${error.message}`);
                             }
-                        } else {
-                            // HTML以外の応答の場合
-                            errorMessage += "応答タイプが予期しないものでした";
+                            
+                            // プログレスバーを更新
+                            const progress = Math.round(((i + 1) / files.length) * 100);
+                            progressBar.style.width = `${progress}%`;
+                            progressText.textContent = `${i + 1}/${files.length}`;
                         }
                         
-                        console.error('非JSONレスポンス:', errorText.substring(0, 500) + '...');
-                        throw new Error(errorMessage);
-                    }
-                    
-                    let data;
-                    try {
-                        data = await response.json();
-                    } catch (jsonError) {
-                        throw new Error("レスポンスのJSONパースに失敗しました。サーバーエラーの可能性があります。");
-                    }
-                    
-                    if (response.ok) {
+                        // 成功時、メディアファイルリストを更新
                         await fetchMediaFiles();
+                        
+                        // モーダルを閉じる
                         modal.remove();
-                    } else {
-                        // エラーメッセージをより詳細に表示
-                        if (data.errors) {
-                            const errorMessages = [];
-                            for (const [field, messages] of Object.entries(data.errors)) {
-                                errorMessages.push(...messages);
+                        
+                        // 結果を通知
+                        if (successCount > 0) {
+                            const successNotification = document.createElement('div');
+                            successNotification.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md max-w-md overflow-auto';
+                            
+                            let message = '';
+                            if (errorMessages.length > 0) {
+                                message = `<p class="text-sm">${successCount}個のファイルが登録されました。${errorMessages.length}個は失敗しました。</p>`;
+                            } else {
+                                message = `<p class="text-sm">全${successCount}個のファイルが正常に登録されました。</p>`;
                             }
-                            throw new Error(errorMessages.join('\n'));
-                        } else if (data.message) {
-                            throw new Error(data.message);
+                            
+                            successNotification.innerHTML = `
+                                <div class="flex">
+                                    <div class="py-1"><svg class="h-6 w-6 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg></div>
+                                    <div>
+                                        <p class="font-bold">登録完了</p>
+                                        ${message}
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(successNotification);
+                            
+                            // エラーがあれば別途通知
+                            if (errorMessages.length > 0) {
+                                const errorNotification = document.createElement('div');
+                                errorNotification.className = 'fixed bottom-4 left-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md max-w-md max-h-64 overflow-auto';
+                                
+                                let errorList = '<ul class="list-disc list-inside text-xs mt-1">';
+                                errorMessages.forEach(msg => {
+                                    errorList += `<li>${msg}</li>`;
+                                });
+                                errorList += '</ul>';
+                                
+                                errorNotification.innerHTML = `
+                                    <div class="flex">
+                                        <div class="py-1"><svg class="h-6 w-6 text-red-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg></div>
+                                        <div>
+                                            <p class="font-bold">エラーが発生しました</p>
+                                            <p class="text-sm">以下のファイルの登録に失敗しました：</p>
+                                            ${errorList}
+                                        </div>
+                                    </div>
+                                `;
+                                document.body.appendChild(errorNotification);
+                                
+                                // 8秒後にエラー通知を消す（成功通知より長く表示）
+                                setTimeout(() => {
+                                    errorNotification.remove();
+                                }, 8000);
+                            }
+                            
+                            // 5秒後に成功通知を消す
+                            setTimeout(() => {
+                                successNotification.remove();
+                            }, 5000);
+                        } else if (errorMessages.length > 0) {
+                            // 全て失敗した場合
+                            const errorNotification = document.createElement('div');
+                            errorNotification.className = 'fixed bottom-4 right-4 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded shadow-md max-w-md max-h-64 overflow-auto';
+                            
+                            let errorList = '<ul class="list-disc list-inside text-xs mt-1">';
+                            errorMessages.forEach(msg => {
+                                errorList += `<li>${msg}</li>`;
+                            });
+                            errorList += '</ul>';
+                            
+                            errorNotification.innerHTML = `
+                                <div class="flex">
+                                    <div class="py-1"><svg class="h-6 w-6 text-red-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg></div>
+                                    <div>
+                                        <p class="font-bold">登録失敗</p>
+                                        <p class="text-sm">全てのファイルの登録に失敗しました：</p>
+                                        ${errorList}
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(errorNotification);
+                            
+                            // 8秒後に通知を消す
+                            setTimeout(() => {
+                                errorNotification.remove();
+                            }, 8000);
+                        }
+                    } else {
+                        // 単一ファイルの場合は従来の処理
+                        const response = await fetch('{{ route('media.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: formData.get('filename'),
+                                type: formData.get('type'),
+                                title: formData.get('title'),
+                                description: formData.get('description')
+                            })
+                        });
+
+                        // Content-Typeをチェック
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") === -1) {
+                            // エラーメッセージをより具体的に
+                            const errorText = await response.text();
+                            let errorMessage = "サーバーエラーが発生しました。詳細: ";
+                            
+                            // HTMLからエラーメッセージを抽出しようと試みる
+                            if (errorText.includes("<title>")) {
+                                const titleMatch = errorText.match(/<title>(.*?)<\/title>/);
+                                if (titleMatch && titleMatch[1]) {
+                                    errorMessage += titleMatch[1];
+                                }
+                            } else {
+                                // HTML以外の応答の場合
+                                errorMessage += "応答タイプが予期しないものでした";
+                            }
+                            
+                            console.error('非JSONレスポンス:', errorText.substring(0, 500) + '...');
+                            throw new Error(errorMessage);
+                        }
+                        
+                        let data;
+                        try {
+                            data = await response.json();
+                        } catch (jsonError) {
+                            throw new Error("レスポンスのJSONパースに失敗しました。サーバーエラーの可能性があります。");
+                        }
+                        
+                        if (response.ok) {
+                            // 成功時、メディアファイルリストを更新
+                            await fetchMediaFiles();
+                            // モーダルを閉じる
+                            modal.remove();
+                            
+                            // 成功メッセージを表示
+                            const successNotification = document.createElement('div');
+                            successNotification.className = 'fixed bottom-4 right-4 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded shadow-md';
+                            successNotification.innerHTML = `
+                                <div class="flex">
+                                    <div class="py-1"><svg class="h-6 w-6 text-green-500 mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg></div>
+                                    <div>
+                                        <p class="font-bold">登録成功</p>
+                                        <p class="text-sm">${formData.get('filename')} が正常に登録されました。</p>
+                                    </div>
+                                </div>
+                            `;
+                            document.body.appendChild(successNotification);
+                            
+                            // 3秒後に通知を消す
+                            setTimeout(() => {
+                                successNotification.remove();
+                            }, 3000);
                         } else {
-                            throw new Error('登録に失敗しました。');
+                            // エラーメッセージをより詳細に表示
+                            console.log('エラー詳細:', data); // エラー詳細をコンソールに出力
+                            
+                            if (data.errors) {
+                                const errorMessages = [];
+                                for (const [field, messages] of Object.entries(data.errors)) {
+                                    errorMessages.push(`${field}: ${messages.join(', ')}`);
+                                }
+                                throw new Error(errorMessages.join('\n'));
+                            } else if (data.message) {
+                                throw new Error(data.message);
+                            } else {
+                                throw new Error('登録に失敗しました。');
+                            }
                         }
                     }
                 } catch (error) {
