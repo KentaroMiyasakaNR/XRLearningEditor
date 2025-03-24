@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <!-- 紙 -->
+  <rect x="4" y="4" width="12" height="16" rx="1" fill="white" stroke="currentColor" stroke-width="1.5" />
+  <!-- 紙の罫線 -->
+  <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="0.75" />
+  <line x1="6" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="0.75" />
+  <line x1="6" y1="16" x2="10" y2="16" stroke="currentColor" stroke-width="0.75" />
+  
+  <!-- ペン（大きめ） -->
+  <path d="M14 17L19 12L22 15L17 20L14 17Z" fill="#4338ca" stroke="currentColor" stroke-width="1.5" />
+  <path d="M14 17L13 20L16 19L14 17Z" fill="#4338ca" stroke="currentColor" stroke-width="1.5" />
+  <line x1="19" y1="12" x2="15" y2="8" stroke="currentColor" stroke-width="1.5" />
+  <path d="M15 8L17 6L20 9L18 11" fill="#4338ca" stroke="currentColor" stroke-width="1.5" />
+  
+  <style>
+    @media (prefers-color-scheme: dark) {
+      svg {
+        stroke: white;
+      }
+      rect {
+        fill: #1f2937;
+      }
+      path {
+        fill: #818cf8;
+      }
+    }
+    @media (prefers-color-scheme: light) {
+      svg {
+        stroke: #1e293b;
+      }
+      rect {
+        fill: white;
+      }
+      path {
+        fill: #4338ca;
+      }
+    }
+  </style>
+</svg> 
