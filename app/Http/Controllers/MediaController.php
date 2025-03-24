@@ -31,8 +31,8 @@ class MediaController extends Controller
             Log::info('メディア一覧取得: 環境 = ' . app()->environment());
             
             // データベースからメディア情報を取得
-            $videos = Media::where('type', 'videos')->get(['id', 'filename', 'title']);
-            $images = Media::where('type', 'images')->get(['id', 'filename', 'title']);
+            $videos = Media::where('type', 'videos')->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
+            $images = Media::where('type', 'images')->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
 
             return response()->json([
                 'videos' => $videos,
@@ -156,6 +156,75 @@ class MediaController extends Controller
             Log::error('メディア情報削除エラー: ' . $e->getMessage());
             return response()->json([
                 'message' => 'メディア情報の削除に失敗しました: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * メディア情報を更新
+     */
+    public function update(Request $request)
+    {
+        // JSONレスポンスを強制
+        $request->headers->set('Accept', 'application/json');
+        
+        try {
+            $request->validate([
+                'id' => 'required|exists:media,id',
+                'filename' => 'required|string|max:255',
+                'title' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+            ], [
+                'id.required' => 'メディアIDは必須です。',
+                'id.exists' => '指定されたメディアIDは存在しません。',
+                'filename.required' => 'ファイル名は必須です。',
+                'filename.max' => 'ファイル名は255文字以内で入力してください。',
+                'title.max' => 'タイトルは255文字以内で入力してください。',
+            ]);
+
+            $media = Media::findOrFail($request->id);
+            
+            // 別のメディアで同じファイル名が使用されていないか確認（同じIDは除外）
+            $existingMedia = Media::where('filename', $request->filename)
+                                ->where('type', $media->type)
+                                ->where('id', '!=', $media->id)
+                                ->first();
+            
+            if ($existingMedia) {
+                return response()->json([
+                    'message' => 'このファイル名は既に別のメディアで使用されています。',
+                ], 422);
+            }
+
+            // メディア情報を更新
+            $media->update([
+                'filename' => $request->filename,
+                'title' => $request->title ?? $request->filename,
+                'description' => $request->description,
+            ]);
+
+            Log::info('メディア情報を更新しました', ['id' => $media->id, 'filename' => $media->filename]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'メディア情報を更新しました。',
+                'media' => $media
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // バリデーションエラーをそのまま返す
+            return response()->json([
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // その他のエラー
+            Log::error('メディア情報更新エラー: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'メディア情報の更新に失敗しました: ' . $e->getMessage()
             ], 500);
         }
     }

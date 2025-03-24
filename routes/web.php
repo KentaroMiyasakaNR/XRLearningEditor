@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/quizzes/{quiz}/submit', [QuizController::class, 'submit'])->name('quizzes.submit');
     Route::get('/media', [MediaController::class, 'index'])->name('media.index');
     Route::post('/media', [MediaController::class, 'store'])->name('media.store');
+    Route::put('/media', [MediaController::class, 'update'])->name('media.update');
     Route::delete('/media', [MediaController::class, 'destroy'])->name('media.destroy');
 });
 

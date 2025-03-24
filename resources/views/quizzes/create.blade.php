@@ -355,11 +355,11 @@
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
             modal.innerHTML = `
-                <div class="relative top-20 mx-auto p-6 border w-96 shadow-lg rounded-lg bg-white dark:bg-gray-800">
+                <div class="relative top-20 mx-auto p-6 border w-[600px] shadow-lg rounded-lg bg-white dark:bg-gray-800">
                     <div class="mt-3">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                                ${type === 'videos' ? '動画' : '画像'}ファイル名の登録
+                                ${type === 'videos' ? '動画' : '画像'}ファイル名の管理
                             </h3>
                             <button type="button" onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -367,7 +367,25 @@
                                 </svg>
                             </button>
                         </div>
-                        <div class="mt-2">
+                        
+                        <!-- タブナビゲーション -->
+                        <div class="border-b border-gray-200 dark:border-gray-700">
+                            <nav class="flex space-x-2" aria-label="Tabs">
+                                <button type="button" 
+                                        class="tab-button active px-4 py-2 text-sm font-medium rounded-t-md border-b-2 border-indigo-500 text-indigo-600 dark:text-indigo-400"
+                                        data-tab="register">
+                                    新規登録
+                                </button>
+                                <button type="button" 
+                                        class="tab-button px-4 py-2 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                                        data-tab="edit">
+                                    既存ファイル編集
+                                </button>
+                            </nav>
+                        </div>
+                        
+                        <!-- 登録タブコンテンツ -->
+                        <div id="register-tab" class="tab-content mt-4">
                             <form id="mediaUploadForm" class="space-y-4">
                                 <div class="space-y-4">
                                     <div>
@@ -408,6 +426,76 @@
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                        
+                        <!-- 編集タブコンテンツ -->
+                        <div id="edit-tab" class="tab-content mt-4 hidden">
+                            <div class="search-box mb-4">
+                                <input type="text" id="media-search" placeholder="検索..." class="w-full px-3 py-2 border rounded-md text-sm">
+                            </div>
+                            <div id="media-list" class="border rounded-md overflow-hidden">
+                                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                                    <thead class="bg-gray-50 dark:bg-gray-800">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-8">
+                                                <input type="checkbox" id="select-all-media" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                                            </th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                ファイル名
+                                            </th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                タイトル
+                                            </th>
+                                            <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                操作
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="media-items" class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                                        <!-- メディアアイテムがここに動的に追加されます -->
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-4 text-sm text-center text-gray-500 dark:text-gray-400">
+                                                読み込み中...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-4 flex justify-end">
+                                <button type="button" id="bulk-delete-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                    選択したメディアを削除
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 編集フォームモーダル（初期状態では非表示） -->
+                        <div id="edit-form-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-96 max-w-full">
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">メディア情報の編集</h3>
+                                <form id="mediaEditForm" class="space-y-4">
+                                    <input type="hidden" name="id" id="edit-id">
+                                    <div>
+                                        <label for="edit-filename" class="block text-sm font-medium text-gray-700 dark:text-gray-300">ファイル名 <span class="text-red-500">*</span></label>
+                                        <input type="text" name="filename" id="edit-filename" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" required>
+                                    </div>
+                                    <div>
+                                        <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">タイトル</label>
+                                        <input type="text" name="title" id="edit-title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                    </div>
+                                    <div>
+                                        <label for="edit-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
+                                        <textarea name="description" id="edit-description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+                                    </div>
+                                    <div class="flex justify-end space-x-3">
+                                        <button type="button" onclick="closeEditForm()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                                            キャンセル
+                                        </button>
+                                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                            更新
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -465,8 +553,6 @@
                                 if (!titleInput.value) {
                                     const titleWithoutExtension = this.dataset.filename.split('.').slice(0, -1).join('.');
                                     titleInput.value = titleWithoutExtension
-                                        .replace(/_/g, ' ')
-                                        .replace(/-/g, ' ')
                                         .replace(/\b\w/g, l => l.toUpperCase());
                                 }
                             };
@@ -493,10 +579,7 @@
                         // タイトルが未入力の場合は、拡張子を除いたファイル名をデフォルトのタイトルとして設定
                         if (!titleInput.value) {
                             const titleWithoutExtension = filename.split('.').slice(0, -1).join('.');
-                            // スネークケースやケバブケースをスペースに変換してタイトルっぽく
                             titleInput.value = titleWithoutExtension
-                                .replace(/_/g, ' ')
-                                .replace(/-/g, ' ')
                                 .replace(/\b\w/g, l => l.toUpperCase()); // 単語の先頭を大文字に
                         }
                         
@@ -553,8 +636,6 @@
                             // ファイル名から自動的にタイトルを生成（拡張子を除去）
                             const titleWithoutExtension = fileName.split('.').slice(0, -1).join('.');
                             const autoTitle = titleWithoutExtension
-                                .replace(/_/g, ' ')
-                                .replace(/-/g, ' ')
                                 .replace(/\b\w/g, l => l.toUpperCase());
                             
                             try {
@@ -814,6 +895,245 @@
             fetchMediaFiles();
             addQuestionToForm();
         });
+
+        // メディアアイテムのレンダリング
+        function renderMediaItems(items) {
+            const mediaList = modal.querySelector('#media-items');
+            
+            if (items.length === 0) {
+                mediaList.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-gray-500 dark:text-gray-400">メディアが見つかりません</td></tr>';
+                return;
+            }
+            
+            mediaList.innerHTML = '';
+            
+            items.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 dark:hover:bg-gray-800';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-3 text-sm">
+                        <input type="checkbox" data-id="${item.id}" class="media-checkbox h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 font-mono">
+                        ${item.filename}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                        ${item.title || ''}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-right">
+                        <div class="flex justify-end space-x-2">
+                            <button type="button" data-id="${item.id}" class="edit-media-btn px-3 py-1 text-sm font-medium text-indigo-600 bg-indigo-100 hover:bg-indigo-200 rounded-md dark:text-indigo-400 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/40">
+                                編集
+                            </button>
+                            <button type="button" data-id="${item.id}" data-filename="${item.filename}" class="delete-media-btn px-3 py-1 text-sm font-medium text-red-600 bg-red-100 hover:bg-red-200 rounded-md dark:text-red-400 dark:bg-red-900/30 dark:hover:bg-red-800/40">
+                                削除
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                mediaList.appendChild(row);
+            });
+            
+            // 編集ボタンのイベントハンドラを設定
+            modal.querySelectorAll('.edit-media-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const mediaId = button.getAttribute('data-id');
+                    const mediaItem = mediaItems.find(item => item.id == mediaId);
+                    
+                    if (mediaItem) {
+                        openEditForm(mediaItem);
+                    }
+                });
+            });
+            
+            // 削除ボタンのイベントハンドラを設定
+            modal.querySelectorAll('.delete-media-btn').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const mediaId = button.getAttribute('data-id');
+                    const filename = button.getAttribute('data-filename');
+                    
+                    if (confirm(`「${filename}」を削除してもよろしいですか？\n\nこの操作は元に戻せません。`)) {
+                        await deleteMedia(mediaId);
+                    }
+                });
+            });
+
+            // チェックボックスの状態変更時に一括削除ボタンの状態を更新
+            const checkboxes = modal.querySelectorAll('.media-checkbox');
+            const bulkDeleteBtn = modal.querySelector('#bulk-delete-btn');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateBulkDeleteButton);
+            });
+
+            // 全選択チェックボックスのイベントハンドラを設定
+            const selectAllCheckbox = modal.querySelector('#select-all-media');
+            selectAllCheckbox.checked = false;
+            selectAllCheckbox.addEventListener('change', function() {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBulkDeleteButton();
+            });
+
+            // 一括削除ボタンのイベントハンドラを設定
+            bulkDeleteBtn.addEventListener('click', bulkDeleteMedia);
+
+            // 一括削除ボタンの状態更新
+            function updateBulkDeleteButton() {
+                const checkedCount = modal.querySelectorAll('.media-checkbox:checked').length;
+                bulkDeleteBtn.disabled = checkedCount === 0;
+                bulkDeleteBtn.textContent = checkedCount > 0 
+                    ? `選択したメディアを削除 (${checkedCount})` 
+                    : '選択したメディアを削除';
+            }
+
+            // 一括削除処理
+            async function bulkDeleteMedia() {
+                const selectedIds = Array.from(modal.querySelectorAll('.media-checkbox:checked'))
+                    .map(checkbox => checkbox.getAttribute('data-id'));
+                
+                if (selectedIds.length === 0) return;
+                
+                if (confirm(`選択した${selectedIds.length}件のメディアを削除してもよろしいですか？\n\nこの操作は元に戻せません。`)) {
+                    let successCount = 0;
+                    let errorMessages = [];
+                    
+                    // プログレスバーを表示
+                    const progressContainer = document.createElement('div');
+                    progressContainer.className = 'mt-4';
+                    progressContainer.innerHTML = `
+                        <p class="text-sm mb-1">削除中... <span id="delete-progress-text">0/${selectedIds.length}</span></p>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div id="delete-progress-bar" class="bg-red-600 h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    `;
+                    
+                    const mediaListContainer = modal.querySelector('#media-list');
+                    mediaListContainer.after(progressContainer);
+                    
+                    const progressBar = progressContainer.querySelector('#delete-progress-bar');
+                    const progressText = progressContainer.querySelector('#delete-progress-text');
+                    
+                    // 削除ボタンを無効化
+                    bulkDeleteBtn.disabled = true;
+                    bulkDeleteBtn.innerHTML = `
+                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        削除中...
+                    `;
+                    
+                    // 順番に削除処理を実行
+                    for (let i = 0; i < selectedIds.length; i++) {
+                        const mediaId = selectedIds[i];
+                        
+                        try {
+                            const response = await fetch('{{ route('media.destroy') }}', {
+                                method: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ id: mediaId })
+                            });
+                            
+                            if (response.ok) {
+                                successCount++;
+                            } else {
+                                const errorData = await response.json();
+                                const mediaFilename = mediaItems.find(item => item.id == mediaId)?.filename || 'ID: ' + mediaId;
+                                errorMessages.push(`${mediaFilename}: ${errorData.message || '削除に失敗しました'}`);
+                            }
+                        } catch (error) {
+                            const mediaFilename = mediaItems.find(item => item.id == mediaId)?.filename || 'ID: ' + mediaId;
+                            errorMessages.push(`${mediaFilename}: ${error.message}`);
+                        }
+                        
+                        // プログレスバーを更新
+                        const progress = Math.round(((i + 1) / selectedIds.length) * 100);
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `${i + 1}/${selectedIds.length}`;
+                    }
+                    
+                    // プログレスバーを削除
+                    setTimeout(() => {
+                        progressContainer.remove();
+                    }, 1000);
+                    
+                    // メディアリストを再読み込み
+                    await loadMediaItems();
+                    
+                    // メディア選択肢も更新
+                    await fetchMediaFiles();
+                    
+                    // 操作結果を通知
+                    if (successCount > 0) {
+                        if (errorMessages.length > 0) {
+                            showNotification(`${successCount}件のメディアを削除しました。${errorMessages.length}件は失敗しました。`, 'success');
+                            
+                            // エラー詳細を表示
+                            console.error('削除エラー:', errorMessages);
+                            const errorHTML = errorMessages.map(msg => `<li>${msg}</li>`).join('');
+                            showNotification(`削除エラー詳細: <ul class="mt-1 list-disc list-inside text-xs">${errorHTML}</ul>`, 'error', 8000);
+                        } else {
+                            showNotification(`${successCount}件のメディアを削除しました。`, 'success');
+                        }
+                    } else if (errorMessages.length > 0) {
+                        showNotification('すべてのメディアの削除に失敗しました。', 'error');
+                    }
+                    
+                    // 削除ボタンをリセット
+                    bulkDeleteBtn.innerHTML = '選択したメディアを削除';
+                    bulkDeleteBtn.disabled = true;
+                }
+            }
+        }
+
+        // 通知メッセージを表示
+        function showNotification(message, type = 'info', duration = 3000) {
+            const notification = document.createElement('div');
+            notification.className = `fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-100 border-l-4 border-green-500 text-green-700' : 
+                type === 'error' ? 'bg-red-100 border-l-4 border-red-500 text-red-700' : 
+                'bg-blue-100 border-l-4 border-blue-500 text-blue-700'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="py-1 mr-3 flex-shrink-0">
+                        ${type === 'success' ? 
+                            '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' : 
+                            type === 'error' ? 
+                            '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : 
+                            '<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+                        }
+                    </div>
+                    <div class="max-w-xs">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 指定時間後に通知を消す
+            setTimeout(() => {
+                notification.remove();
+            }, duration);
+        }
+        
+        // 編集フォームを閉じる関数をグローバルに定義
+        window.closeEditForm = function() {
+            const editFormModal = document.querySelector('#edit-form-modal');
+            if (editFormModal) {
+                editFormModal.classList.add('hidden');
+            }
+        };
     </script>
     @endpush
 </x-app-layout> 
