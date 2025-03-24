@@ -198,26 +198,8 @@ class QuizController extends Controller
                 'questions.*.options' => 'required|array|min:2',
                 'questions.*.options.*.option_text' => 'required|string|max:500',
                 'questions.*.options.*.is_correct' => 'required|boolean',
-            ], [
-                'title.required' => 'タイトルは必須です。',
-                'title.max' => 'タイトルは255文字以内で入力してください。',
-                'questions.required' => '質問は必須です。',
-                'questions.min' => '少なくとも1つの質問を追加してください。',
-                'questions.*.question_text.required' => '質問文は必須です。',
-                'questions.*.question_text.max' => '質問文は1000文字以内で入力してください。',
-                'questions.*.points.required' => '配点は必須です。',
-                'questions.*.points.min' => '配点は1以上で入力してください。',
-                'questions.*.media_name.max' => 'メディア名は255文字以内で入力してください。',
-                'questions.*.explanation_text.max' => '説明テキストは255文字以内で入力してください。',
-                'questions.*.explanation_image_name.max' => '説明画像名は255文字以内で入力してください。',
-                'questions.*.options.required' => '選択肢は必須です。',
-                'questions.*.options.min' => '選択肢は最低2つ必要です。',
-                'questions.*.options.*.option_text.required' => '選択肢のテキストは必須です。',
-                'questions.*.options.*.option_text.max' => '選択肢のテキストは500文字以内で入力してください。',
-                'questions.*.options.*.is_correct.required' => '正解の選択は必須です。',
             ]);
 
-            // 各質問に少なくとも1つの正解があることを確認
             foreach ($request->questions as $index => $question) {
                 $hasCorrectAnswer = false;
                 foreach ($question['options'] as $option) {
@@ -278,6 +260,13 @@ class QuizController extends Controller
                 }
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'message' => 'クイズが更新されました。',
+                    'redirect' => route('quizzes.index')
+                ]);
+            }
+
             return redirect()->route('quizzes.index')
                 ->with('success', 'クイズが更新されました。');
 
@@ -286,6 +275,13 @@ class QuizController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'message' => 'クイズの更新に失敗しました。',
+                    'errors' => ['error' => [$e->getMessage()]]
+                ], 422);
+            }
 
             return back()
                 ->withInput()

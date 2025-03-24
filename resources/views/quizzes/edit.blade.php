@@ -28,6 +28,35 @@
                     <!-- エラーメッセージ表示エリア -->
                     <div id="error-messages" class="mb-4 text-red-600 dark:text-red-400"></div>
 
+                    <!-- メディア通知メッセージ -->
+                    <div id="media-notification" class="hidden mb-4 p-4 border-l-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200">
+                        <div class="flex justify-between items-center">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-yellow-600 dark:text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="font-medium">
+                                        メディアファイルがまだ登録されていません。
+                                    </p>
+                                    <p class="mt-1 text-sm">
+                                        「画像ファイル名の登録」または「動画ファイル名の登録」ボタンをクリックして、まずメディアファイルの情報を登録してください。メディアファイルを登録すると、ドロップダウンメニューにファイルが表示されるようになります。
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <button type="button" onclick="refreshMediaFiles()" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-200 dark:hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                    <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    メディアリストを更新
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     <form action="{{ route('quizzes.update', $quiz) }}" method="POST" id="quizForm">
                         @csrf
                         @method('PUT')
@@ -73,6 +102,9 @@
                                     <div class="mt-1">
                                         <select name="questions[{{ $questionIndex }}][media_name]" class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                                             <option value="">なし</option>
+                                            @if ($question->media_name)
+                                            <option value="{{ $question->media_name }}" selected>{{ $question->media_name }}</option>
+                                            @endif
                                             <!-- 動画ファイルがここに動的に追加されます -->
                                         </select>
                                     </div>
@@ -86,6 +118,9 @@
                                     <div class="mt-1">
                                         <select name="questions[{{ $questionIndex }}][explanation_image_name]" class="block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                                             <option value="">なし</option>
+                                            @if ($question->explanation_image_name)
+                                            <option value="{{ $question->explanation_image_name }}" selected>{{ $question->explanation_image_name }}</option>
+                                            @endif
                                             <!-- 画像ファイルがここに動的に追加されます -->
                                         </select>
                                     </div>
@@ -139,10 +174,107 @@
 
     @push('scripts')
     <script>
+        // 必要なグローバル変数を宣言
         let questionCount = {{ count($quiz->questions) }};
         let existingQuizzes = []; // 既存のクイズを保持する配列
         let mediaFiles = { videos: [], images: [] };
-
+        let mediaType = '';
+        let mediaItems = [];
+        let modal = null;
+        
+        // メディアファイルリストを手動で更新する関数
+        async function refreshMediaFiles() {
+            console.log('メディアファイルリストの手動更新を開始');
+            
+            const button = document.querySelector('#media-notification button');
+            if (button) {
+                // ボタンを無効化して更新中表示
+                const originalText = button.textContent;
+                button.disabled = true;
+                button.textContent = '更新中...';
+                
+                try {
+                    // メディアファイルを取得して更新
+                    await fetchMediaFiles();
+                    
+                    // 更新が成功した場合の通知
+                    const mediaNotification = document.getElementById('media-notification');
+                    if (mediaFiles.videos.length > 0 || mediaFiles.images.length > 0) {
+                        // メディアが存在する場合は通知を非表示
+                        if (mediaNotification) {
+                            mediaNotification.classList.add('hidden');
+                        }
+                        
+                        // 一時的な成功メッセージを表示
+                        const successNotice = document.createElement('div');
+                        successNotice.className = 'mb-4 p-4 border-l-4 border-green-500 bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200';
+                        successNotice.innerHTML = `
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-green-600 dark:text-green-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm mb-1">メディアファイルリストが更新されました。</p>
+                                    <p class="text-sm mt-1">動画: ${mediaFiles.videos.length}件, 画像: ${mediaFiles.images.length}件</p>
+                                </div>
+                            </div>
+                        `;
+                        
+                        mediaNotification.parentNode.insertBefore(successNotice, mediaNotification.nextSibling);
+                        
+                        // 3秒後に成功メッセージを消す
+                        setTimeout(() => {
+                            successNotice.remove();
+                        }, 3000);
+                    } else {
+                        // メディアが存在しない場合
+                        if (mediaNotification) {
+                            mediaNotification.classList.remove('hidden');
+                        }
+                    }
+                    
+                    // ドロップダウンの更新を強制実行
+                    updateMediaSelects();
+                } catch (error) {
+                    console.error('メディアファイルリストの更新に失敗しました:', error);
+                    
+                    // エラーメッセージを表示
+                    const errorNotice = document.createElement('div');
+                    errorNotice.className = 'mb-4 p-4 border-l-4 border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+                    errorNotice.innerHTML = `
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-600 dark:text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm"><strong>エラー:</strong> メディアファイルリストの更新に失敗しました。</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    const mediaNotification = document.getElementById('media-notification');
+                    if (mediaNotification) {
+                        mediaNotification.parentNode.insertBefore(errorNotice, mediaNotification.nextSibling);
+                    }
+                    
+                    // 3秒後にエラーメッセージを消す
+                    setTimeout(() => {
+                        errorNotice.remove();
+                    }, 3000);
+                } finally {
+                    // ボタンを元に戻す
+                    if (button) {
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }
+                }
+            }
+        }
+        
         // 既存のクイズを取得
         async function fetchExistingQuizzes() {
             try {
@@ -150,12 +282,51 @@
                 const response = await fetch('{{ url('/api/quizzes') }}');
                 const data = await response.json();
                 existingQuizzes = data;
-                updateNextQuizSelects();
+                return existingQuizzes;
             } catch (error) {
                 console.error('クイズの取得に失敗しました:', error);
-                // エラーが発生した場合は空の配列を使用
-                existingQuizzes = [];
-                updateNextQuizSelects();
+                return [];
+            }
+        }
+
+        // メディアファイルを取得 - Create画面と同様のシンプルな実装
+        async function fetchMediaFiles() {
+            try {
+                const response = await fetch('{{ route('media.index') }}');
+                
+                // レスポンスステータスをチェック
+                if (!response.ok) {
+                    throw new Error(`サーバーエラー：HTTPステータス ${response.status}`);
+                }
+                
+                // レスポンスのContent-Typeをチェック
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    console.warn("JSONではないレスポンスを受信しました。");
+                    mediaFiles = { videos: [], images: [] };
+                    return mediaFiles;
+                }
+                
+                const data = await response.json();
+                
+                // データの形式を確認
+                if (data && typeof data === 'object') {
+                    mediaFiles = {
+                        videos: Array.isArray(data.videos) ? data.videos : [],
+                        images: Array.isArray(data.images) ? data.images : []
+                    };
+                    
+                    console.log('メディアファイル取得成功 - 動画:', mediaFiles.videos.length, '画像:', mediaFiles.images.length);
+                    return mediaFiles;
+                } else {
+                    console.warn('無効なデータ形式を受信しました');
+                    mediaFiles = { videos: [], images: [] };
+                    return mediaFiles;
+                }
+            } catch (error) {
+                console.error('メディアファイルの取得に失敗しました:', error);
+                mediaFiles = { videos: [], images: [] };
+                return mediaFiles;
             }
         }
 
@@ -165,93 +336,163 @@
             selects.forEach(select => {
                 const currentValue = select.value;
                 select.innerHTML = '<option value="">次のクイズなし</option>';
+                
+                // 現在編集中のクイズ以外の選択肢を表示
+                const currentEditingQuizId = {{ $quiz->id }};
                 existingQuizzes.forEach(quiz => {
-                    const option = document.createElement('option');
-                    option.value = quiz.id;
-                    option.textContent = quiz.title;
-                    select.appendChild(option);
+                    if (quiz.id !== currentEditingQuizId) {
+                        const option = document.createElement('option');
+                        option.value = quiz.id;
+                        option.textContent = quiz.title;
+                        select.appendChild(option);
+                    }
                 });
+                
                 if (currentValue) {
-                    select.value = currentValue;
+                    // もし値がoption内に存在するなら選択
+                    const optionExists = Array.from(select.options).some(option => option.value === currentValue);
+                    if (optionExists) {
+                        select.value = currentValue;
+                    }
                 }
             });
-        }
-
-        // メディアファイルを取得
-        async function fetchMediaFiles() {
-            try {
-                const response = await fetch('{{ route('media.index') }}');
-                
-                // レスポンスステータスをチェック
-                if (!response.ok && response.status !== 200) {
-                    throw new Error(`サーバーエラー：HTTPステータス ${response.status}`);
-                }
-                
-                // レスポンスのContent-Typeをチェック
-                const contentType = response.headers.get("content-type");
-                if (contentType && contentType.indexOf("application/json") === -1) {
-                    console.warn("JSONではないレスポンスを受信しました。エラー回復を試みます。");
-                    // JSONではない場合は空の結果を使用
-                    mediaFiles = { videos: [], images: [] };
-                    updateMediaSelects();
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                // APIがエラーオブジェクトを返した場合でも動画と画像の配列が含まれていることを確認
-                if (data.videos !== undefined && data.images !== undefined) {
-                    mediaFiles = data;
-                } else {
-                    // データ形式が期待通りでない場合は、空の配列を使用
-                    console.warn("予期しないデータ形式を受信しました", data);
-                    mediaFiles = { 
-                        videos: Array.isArray(data.videos) ? data.videos : [], 
-                        images: Array.isArray(data.images) ? data.images : []
-                    };
-                }
-                updateMediaSelects();
-            } catch (error) {
-                console.error('メディアファイルの取得に失敗しました:', error);
-                // エラーが発生しても続行できるよう、空のオブジェクトを設定
-                mediaFiles = { videos: [], images: [] };
-                updateMediaSelects();
-            }
         }
 
         // メディア選択肢を更新
         function updateMediaSelects() {
+            console.log('メディア選択肢の更新を開始');
+            
+            // 選択肢を更新する対象を取得
             const videoSelects = document.querySelectorAll('select[name$="[media_name]"]');
             const imageSelects = document.querySelectorAll('select[name$="[explanation_image_name]"]');
+            
+            console.log('更新対象 - 動画セレクト:', videoSelects.length, '画像セレクト:', imageSelects.length);
 
+            // 動画選択肢の更新
             videoSelects.forEach(select => {
                 const currentValue = select.value;
+                // いったんクリア
                 select.innerHTML = '<option value="">なし</option>';
-                mediaFiles.videos.forEach(video => {
-                    const option = document.createElement('option');
-                    option.value = video.filename;
-                    option.textContent = video.title || video.filename;
-                    select.appendChild(option);
-                });
+                
+                // 選択肢を追加
+                if (mediaFiles.videos && mediaFiles.videos.length) {
+                    mediaFiles.videos.forEach(video => {
+                        const option = document.createElement('option');
+                        option.value = video.filename;
+                        option.textContent = video.title || video.filename;
+                        select.appendChild(option);
+                    });
+                }
+                
+                // 現在の値を復元
                 if (currentValue) {
-                    select.value = currentValue;
+                    // 値が存在するかチェック
+                    const exists = Array.from(select.options).some(option => option.value === currentValue);
+                    if (exists) {
+                        select.value = currentValue;
+                    } else if (currentValue !== '') {
+                        // 存在しないけど値がある場合、削除されたファイル用のオプションを追加
+                        const option = document.createElement('option');
+                        option.value = currentValue;
+                        option.textContent = currentValue + ' (削除済み)';
+                        select.appendChild(option);
+                        select.value = currentValue;
+                    }
                 }
             });
 
+            // 画像選択肢の更新
             imageSelects.forEach(select => {
                 const currentValue = select.value;
+                // いったんクリア
                 select.innerHTML = '<option value="">なし</option>';
-                mediaFiles.images.forEach(image => {
-                    const option = document.createElement('option');
-                    option.value = image.filename;
-                    option.textContent = image.title || image.filename;
-                    select.appendChild(option);
-                });
+                
+                // 選択肢を追加
+                if (mediaFiles.images && mediaFiles.images.length) {
+                    mediaFiles.images.forEach(image => {
+                        const option = document.createElement('option');
+                        option.value = image.filename;
+                        option.textContent = image.title || image.filename;
+                        select.appendChild(option);
+                    });
+                }
+                
+                // 現在の値を復元
                 if (currentValue) {
-                    select.value = currentValue;
+                    // 値が存在するかチェック
+                    const exists = Array.from(select.options).some(option => option.value === currentValue);
+                    if (exists) {
+                        select.value = currentValue;
+                    } else if (currentValue !== '') {
+                        // 存在しないけど値がある場合、削除されたファイル用のオプションを追加
+                        const option = document.createElement('option');
+                        option.value = currentValue;
+                        option.textContent = currentValue + ' (削除済み)';
+                        select.appendChild(option);
+                        select.value = currentValue;
+                    }
                 }
             });
+            
+            console.log('メディア選択肢の更新完了');
+            
+            // メディアが存在しない場合はメッセージを表示
+            const mediaNotification = document.getElementById('media-notification');
+            if (mediaNotification) {
+                if ((!mediaFiles.videos || mediaFiles.videos.length === 0) && 
+                    (!mediaFiles.images || mediaFiles.images.length === 0)) {
+                    mediaNotification.classList.remove('hidden');
+                } else {
+                    mediaNotification.classList.add('hidden');
+                }
+            }
         }
+
+        // DOM 読み込み完了時の処理をシンプルに
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('DOM初期化: 処理を開始します');
+            console.log('%c🔍 デバッグヘルプ', 'font-size:14px; font-weight:bold; color:#4CAF50;');
+            console.log('%cメディアドロップダウンに問題がある場合は、次の内容を確認してください:', 'font-weight:bold;');
+            console.log('1. APIレスポンス: media.indexからのレスポンスデータ');
+            console.log('2. メディアファイル数: 動画と画像の数が0でないこと');
+            console.log('3. updateMediaSelects関数: ドロップダウンが正しく更新されているか');
+            console.log('4. CORSエラー: ブラウザのコンソールにCORSエラーがないか');
+            console.log('5. キャッシュ問題: Ctrl+F5でハードリロードを試してみる');
+            
+            // メディア通知エリアのボタンにリスナーを設定
+            const refreshButton = document.querySelector('#media-notification button');
+            if (refreshButton) {
+                refreshButton.addEventListener('click', refreshMediaFiles);
+                console.log('メディア更新ボタンにイベントリスナーを設定しました');
+            }
+            
+            try {
+                // 並行して両方のデータを取得
+                const [quizzes, media] = await Promise.all([
+                    fetchExistingQuizzes(),
+                    fetchMediaFiles()
+                ]);
+                
+                console.log('データ取得完了 - クイズ:', existingQuizzes.length, '件');
+                console.log('データ取得完了 - メディア: 動画', mediaFiles.videos.length, '件, 画像', mediaFiles.images.length, '件');
+                
+                // クイズとメディア選択肢を更新
+                updateNextQuizSelects();
+                updateMediaSelects();
+                
+                // メディアが存在しない場合は通知を表示
+                if ((!mediaFiles.videos || mediaFiles.videos.length === 0) && 
+                    (!mediaFiles.images || mediaFiles.images.length === 0)) {
+                    console.warn('メディアファイルが存在しません。メディアファイルを登録してください。');
+                    const mediaNotification = document.getElementById('media-notification');
+                    if (mediaNotification) {
+                        mediaNotification.classList.remove('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('初期化中にエラーが発生しました:', error);
+            }
+        });
 
         function addQuestionToForm() {
             const container = document.getElementById('questions-container');
@@ -368,8 +609,22 @@
 
         // メディアファイル名登録モーダルを開く
         function openMediaRegistrationModal(type) {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+            console.log('openMediaRegistrationModal実行:', type);
+            mediaType = type; // グローバル変数に保存
+            console.log('mediaType設定:', mediaType);
+            
+            // 既存のモーダルがあれば削除
+            const existingModal = document.querySelector('.media-registration-modal');
+            if (existingModal) {
+                console.log('既存のモーダルを削除します');
+                existingModal.remove();
+            }
+            
+            modal = document.createElement('div');
+            modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50 media-registration-modal';
+            
+            console.log('モーダルDOMを作成中');
+            
             modal.innerHTML = `
                 <div class="relative top-20 mx-auto p-6 border w-[600px] shadow-lg rounded-lg bg-white dark:bg-gray-800">
                     <div class="mt-3">
@@ -377,7 +632,7 @@
                             <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
                                 ${type === 'videos' ? '動画' : '画像'}ファイル名の管理
                             </h3>
-                            <button type="button" onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
+                            <button type="button" onclick="closeMediaModal()" class="text-gray-400 hover:text-gray-500">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
@@ -434,7 +689,7 @@
                                 </div>
                                 
                                 <div class="flex justify-end space-x-3 mt-2">
-                                    <button type="button" onclick="this.closest('.fixed').remove()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <button type="button" onclick="closeMediaModal()" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700">
                                         キャンセル
                                     </button>
                                     <button type="submit" id="uploadButton" class="px-4 py-2 text-sm font-medium text-blue-700 bg-white dark:bg-gray-800 border-2 border-blue-600 dark:border-blue-500 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
@@ -523,15 +778,228 @@
             const fileInput = modal.querySelector('#file_select');
             const filenameInput = modal.querySelector('#filename');
             const titleInput = modal.querySelector('#title');
-            const mediaType = type;
-            let mediaItems = [];
+            // const mediaType = type; ←この行を削除
+            // let mediaItems = []; ←この行を削除
 
+            // ファイル選択時にファイル名を表示
+            fileInput.addEventListener('change', function() {
+                if (this.files.length === 1) {
+                    filenameInput.value = this.files[0].name;
+                    
+                    // ファイル名から自動的にタイトルを生成（拡張子を除去）
+                    const titleWithoutExtension = this.files[0].name.split('.').slice(0, -1).join('.');
+                    const autoTitle = titleWithoutExtension
+                        .replace(/[-_]/g, ' ')  // ハイフンとアンダースコアをスペースに置換
+                        .replace(/\b\w/g, l => l.toUpperCase());  // 単語の先頭を大文字に
+                    
+                    titleInput.value = autoTitle;
+                } else if (this.files.length > 1) {
+                    filenameInput.value = `${this.files.length}個のファイルが選択されています`;
+                    titleInput.value = '';  // 複数選択時はタイトルをクリア
+                } else {
+                    filenameInput.value = '';
+                    titleInput.value = '';
+                }
+            });
+            
+            // メディアアップロードフォームの送信
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                // フォームデータ取得
+                const formData = new FormData(this);
+                const files = fileInput.files;
+                
+                if (!files || files.length === 0) {
+                    alert('ファイルを選択してください。');
+                    return;
+                }
+                
+                // 登録ボタンを無効化して処理中表示
+                uploadButton.disabled = true;
+                uploadButton.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-700 inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    登録中...
+                `;
+                
+                try {
+                    // 複数ファイルが選択されている場合
+                    if (fileInput.files && fileInput.files.length > 1) {
+                        const files = fileInput.files;
+                        const type = formData.get('type');
+                        const description = formData.get('description');
+                        let successCount = 0;
+                        let errorMessages = [];
+                        
+                        // プログレスバーを表示
+                        const progressContainer = document.createElement('div');
+                        progressContainer.className = 'mt-4';
+                        progressContainer.innerHTML = `
+                            <p class="text-sm mb-1">ファイル登録中... <span id="progress-text">0/${files.length}</span></p>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                                <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        `;
+                        form.appendChild(progressContainer);
+                        
+                        const progressBar = progressContainer.querySelector('#progress-bar');
+                        const progressText = progressContainer.querySelector('#progress-text');
+
+                        // ファイルごとに個別に登録リクエストを送信
+                        for (let i = 0; i < files.length; i++) {
+                            const fileName = files[i].name;
+                            
+                            // ファイル名から自動的にタイトルを生成（拡張子を除去）
+                            const titleWithoutExtension = fileName.split('.').slice(0, -1).join('.');
+                            const autoTitle = titleWithoutExtension
+                                .replace(/[-_]/g, ' ')
+                                .replace(/\b\w/g, l => l.toUpperCase());
+                            
+                            try {
+                                const response = await fetch('{{ route('media.store') }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                        'Accept': 'application/json',
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        filename: fileName,
+                                        type: type,
+                                        title: autoTitle,  // ファイル名から自動生成したタイトルを使用
+                                        description: description
+                                    })
+                                });
+                                
+                                // レスポンスの処理
+                                if (response.ok) {
+                                    successCount++;
+                                } else {
+                                    const errorData = await response.json();
+                                    console.log(`エラー詳細 (${fileName}):`, errorData); // エラー詳細をコンソールに出力
+                                    
+                                    if (errorData.errors) {
+                                        const errors = Object.values(errorData.errors).flat();
+                                        errorMessages.push(`${fileName}: ${errors.join(', ')}`);
+                                    } else if (errorData.message) {
+                                        errorMessages.push(`${fileName}: ${errorData.message}`);
+                                    } else {
+                                        errorMessages.push(`${fileName}: 登録に失敗しました`);
+                                    }
+                                }
+                            } catch (error) {
+                                errorMessages.push(`${fileName}: ${error.message}`);
+                            }
+                            
+                            // プログレスバーを更新
+                            const progress = Math.round(((i + 1) / files.length) * 100);
+                            progressBar.style.width = `${progress}%`;
+                            progressText.textContent = `${i + 1}/${files.length}`;
+                        }
+                        
+                        // 成功時、メディアファイルリストを更新
+                        await fetchMediaFiles();
+                        
+                        // モーダルを閉じる
+                        modal.remove();
+                        
+                        // 結果を通知
+                        if (successCount > 0) {
+                            showNotification(`${successCount}個のファイルが正常に登録されました。${errorMessages.length > 0 ? `${errorMessages.length}個は失敗しました。` : ''}`, 'success');
+                            
+                            // エラーがあれば詳細を表示
+                            if (errorMessages.length > 0) {
+                                const errorHTML = errorMessages.map(msg => `<li>${msg}</li>`).join('');
+                                showNotification(`登録エラー詳細: <ul class="mt-1 list-disc list-inside text-xs">${errorHTML}</ul>`, 'error', 8000);
+                            }
+                        } else if (errorMessages.length > 0) {
+                            showNotification('すべてのファイルの登録に失敗しました。', 'error');
+                            const errorHTML = errorMessages.map(msg => `<li>${msg}</li>`).join('');
+                            showNotification(`エラー詳細: <ul class="mt-1 list-disc list-inside text-xs">${errorHTML}</ul>`, 'error', 8000);
+                        }
+                    } else {
+                        // 単一ファイルの場合
+                        const response = await fetch('{{ route('media.store') }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                filename: formData.get('filename'),
+                                type: formData.get('type'),
+                                title: formData.get('title'),
+                                description: formData.get('description')
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            // 成功時、メディアファイルリストを更新
+                            await fetchMediaFiles();
+                            
+                            // モーダルを閉じる
+                            modal.remove();
+                            
+                            // 成功メッセージ表示
+                            showNotification('ファイルが正常に登録されました。', 'success');
+                        } else {
+                            // エラーメッセージをより詳細に表示
+                            console.log('エラー詳細:', data); // エラー詳細をコンソールに出力
+                            
+                            if (data.errors) {
+                                const errorMessages = [];
+                                for (const [field, messages] of Object.entries(data.errors)) {
+                                    errorMessages.push(`${field}: ${messages.join(', ')}`);
+                                }
+                                throw new Error(errorMessages.join('\n'));
+                            } else if (data.message) {
+                                throw new Error(data.message);
+                            } else {
+                                throw new Error('登録に失敗しました。');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    // エラーメッセージをモーダル内に表示
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'text-red-500 text-sm mt-2 bg-red-50 p-2 rounded';
+                    errorDiv.textContent = error.message;
+                    
+                    // エラーの詳細をコンソールに記録
+                    console.error('登録エラー:', error);
+                    
+                    // 既存のエラーメッセージがあれば削除
+                    const existingError = modal.querySelector('.text-red-500');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    
+                    // フォームの上に表示
+                    form.parentNode.insertBefore(errorDiv, form);
+                    
+                    uploadButton.disabled = false;
+                    uploadButton.textContent = '登録';
+                }
+            });
+            
             // タブ切り替え機能
             const tabButtons = modal.querySelectorAll('.tab-button');
             const tabContents = modal.querySelectorAll('.tab-content');
             
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
+            console.log('タブボタン数:', tabButtons.length);
+            console.log('タブコンテンツ数:', tabContents.length);
+            
+            tabButtons.forEach((button, index) => {
+                console.log(`タブボタン[${index}]:`, button.getAttribute('data-tab'));
+                button.addEventListener('click', (e) => {
+                    console.log('タブクリック:', button.getAttribute('data-tab'));
+                    
                     // すべてのタブをinactive状態にする
                     tabButtons.forEach(btn => {
                         btn.classList.remove('active', 'border-b-2', 'border-indigo-500', 'text-indigo-600', 'dark:text-indigo-400');
@@ -549,10 +1017,19 @@
                     
                     // 対応するコンテンツを表示する
                     const tabName = button.getAttribute('data-tab');
-                    modal.querySelector(`#${tabName}-tab`).classList.remove('hidden');
+                    const tabContent = modal.querySelector(`#${tabName}-tab`);
+                    console.log(`タブコンテンツ[${tabName}]:`, tabContent);
+                    
+                    if (tabContent) {
+                        tabContent.classList.remove('hidden');
+                        console.log(`${tabName}-tabの表示状態:`, !tabContent.classList.contains('hidden'));
+                    } else {
+                        console.error(`#${tabName}-tabが見つかりません`);
+                    }
                     
                     // 編集タブが選択された場合、メディアリストを読み込む
                     if (tabName === 'edit') {
+                        console.log('編集タブが選択されました。メディアリスト読み込み開始');
                         loadMediaItems();
                     }
                 });
@@ -560,47 +1037,108 @@
             
             // メディアアイテムの読み込み
             async function loadMediaItems() {
+                console.log('loadMediaItems関数実行開始');
                 const mediaList = modal.querySelector('#media-items');
+                console.log('mediaList要素:', mediaList);
+                
+                if (!mediaList) {
+                    console.error('#media-items要素が見つかりません');
+                    return;
+                }
+                
                 mediaList.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-gray-500 dark:text-gray-400">読み込み中...</td></tr>';
                 
                 try {
-                    const response = await fetch('{{ route('media.index') }}');
-                    const data = await response.json();
+                    console.log('fetch実行: {{ route('media.index') }}');
+                    const response = await fetch('{{ route('media.index') }}', {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    console.log('レスポンス取得:', response.status, response.statusText);
+                    
+                    if (!response.ok) {
+                        console.error('メディア取得APIエラー:', response.status, response.statusText);
+                        mediaList.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-red-500">エラー: APIステータス ${response.status}</td></tr>`;
+                        return;
+                    }
+                    
+                    // レスポンスのContent-Typeをチェック
+                    const contentType = response.headers.get("content-type");
+                    console.log('レスポンスのContent-Type:', contentType);
+                    
+                    if (contentType && contentType.indexOf("application/json") === -1) {
+                        console.warn("JSONではないレスポンスを受信しました。エラー回復を試みます。");
+                        mediaList.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-red-500">エラー: 無効なレスポンス形式 (${contentType})</td></tr>`;
+                        return;
+                    }
+                    
+                    let data;
+                    try {
+                        data = await response.json();
+                        console.log('APIレスポンスデータ:', data);
+                    } catch (jsonError) {
+                        console.error('JSONパースエラー:', jsonError);
+                        mediaList.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-red-500">エラー: JSONデータの解析に失敗しました</td></tr>`;
+                        return;
+                    }
                     
                     // 現在のタイプ（videos/images）に一致するメディアのみをフィルタリング
-                    mediaItems = data[mediaType === 'videos' ? 'videos' : 'images'] || [];
+                    const filterType = mediaType === 'videos' ? 'videos' : 'images';
+                    console.log('フィルタータイプ:', filterType, '; 元データ:', data[filterType]);
+                    
+                    mediaItems = data[filterType] || [];
+                    console.log('フィルタリング後のメディアアイテム数:', mediaItems.length);
                     
                     renderMediaItems(mediaItems);
                     
                     // 検索機能の設定
                     const searchInput = modal.querySelector('#media-search');
-                    searchInput.addEventListener('input', (e) => {
-                        const searchTerm = e.target.value.toLowerCase();
-                        const filteredItems = mediaItems.filter(item => 
-                            item.filename.toLowerCase().includes(searchTerm) || 
-                            (item.title && item.title.toLowerCase().includes(searchTerm))
-                        );
-                        renderMediaItems(filteredItems);
-                    });
+                    if (searchInput) {
+                        searchInput.addEventListener('input', (e) => {
+                            const searchTerm = e.target.value.toLowerCase();
+                            console.log('検索キーワード:', searchTerm);
+                            
+                            const filteredItems = mediaItems.filter(item => 
+                                item.filename.toLowerCase().includes(searchTerm) || 
+                                (item.title && item.title.toLowerCase().includes(searchTerm))
+                            );
+                            console.log('検索結果:', filteredItems.length);
+                            
+                            renderMediaItems(filteredItems);
+                        });
+                    } else {
+                        console.error('#media-search要素が見つかりません');
+                    }
                     
                 } catch (error) {
-                    console.error('メディアリストの取得に失敗しました:', error);
-                    mediaList.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-red-500">エラー: メディアリストの取得に失敗しました</td></tr>`;
+                    console.error('メディアリストの取得中にエラーが発生しました:', error);
+                    mediaList.innerHTML = `<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-red-500">エラー: ${error.message}</td></tr>`;
                 }
             }
             
             // メディアアイテムのレンダリング
             function renderMediaItems(items) {
+                console.log('renderMediaItems関数実行 - アイテム数:', items.length);
                 const mediaList = modal.querySelector('#media-items');
                 
+                if (!mediaList) {
+                    console.error('renderMediaItems: #media-items要素が見つかりません');
+                    return;
+                }
+                
                 if (items.length === 0) {
+                    console.log('メディアアイテムが0件のため、該当なしメッセージを表示');
                     mediaList.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-center text-gray-500 dark:text-gray-400">メディアが見つかりません</td></tr>';
                     return;
                 }
                 
+                console.log('メディアリストのレンダリング開始');
                 mediaList.innerHTML = '';
                 
-                items.forEach(item => {
+                items.forEach((item, index) => {
+                    console.log(`メディアアイテム[${index}]:`, item.id, item.filename);
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-gray-50 dark:hover:bg-gray-800';
                     
@@ -629,14 +1167,21 @@
                     mediaList.appendChild(row);
                 });
                 
+                console.log('メディアリストのレンダリング完了');
+                
                 // 編集ボタンのイベントハンドラを設定
-                modal.querySelectorAll('.edit-media-btn').forEach(button => {
+                const editBtns = modal.querySelectorAll('.edit-media-btn');
+                console.log('編集ボタン数:', editBtns.length);
+                editBtns.forEach(button => {
                     button.addEventListener('click', () => {
                         const mediaId = button.getAttribute('data-id');
+                        console.log('編集ボタンクリック:', mediaId);
                         const mediaItem = mediaItems.find(item => item.id == mediaId);
                         
                         if (mediaItem) {
                             openEditForm(mediaItem);
+                        } else {
+                            console.error('編集対象のメディアアイテムが見つかりません:', mediaId);
                         }
                     });
                 });
@@ -816,8 +1361,13 @@
             
             // 編集フォームを閉じる
             function closeEditForm() {
+                console.log('closeEditForm実行');
                 const editForm = modal.querySelector('#edit-form-modal');
-                editForm.classList.add('hidden');
+                if (editForm) {
+                    editForm.classList.add('hidden');
+                } else {
+                    console.error('#edit-form-modalが見つかりません');
+                }
             }
             
             // メディア削除処理
@@ -935,17 +1485,25 @@
             
             // 編集フォームを閉じる関数をグローバルに定義
             window.closeEditForm = function() {
+                console.log('closeEditForm実行');
                 const editFormModal = document.querySelector('#edit-form-modal');
                 if (editFormModal) {
                     editFormModal.classList.add('hidden');
+                } else {
+                    console.error('#edit-form-modalが見つかりません');
                 }
             };
             
-            // DOM読み込み完了時の処理
-            document.addEventListener('DOMContentLoaded', function() {
-                fetchExistingQuizzes();
-                fetchMediaFiles();
-            });
+            // モーダルを閉じる関数をグローバルに定義
+            window.closeMediaModal = function() {
+                console.log('closeMediaModal実行');
+                const modalElement = document.querySelector('.media-registration-modal');
+                if (modalElement) {
+                    modalElement.remove();
+                } else {
+                    console.error('.media-registration-modalが見つかりません');
+                }
+            };
         }
 
         // フォーム送信のハンドリング
@@ -956,19 +1514,34 @@
             errorDiv.innerHTML = ''; // エラーメッセージをクリア
 
             try {
+                const formData = new FormData(form);
+                
                 const response = await fetch(form.action, {
                     method: 'POST',
-                    body: new FormData(form),
+                    body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
                     }
                 });
 
-                const result = await response.json();
+                // ステータスコードとContentTypeをログ出力
+                console.log('クイズ更新レスポンス:', response.status, response.statusText);
+                console.log('Content-Type:', response.headers.get('content-type'));
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (jsonError) {
+                    console.error('JSONパースエラー:', jsonError);
+                    errorDiv.innerHTML = '<p>レスポンスの解析に失敗しました。サーバーの応答が不正です。</p>';
+                    errorDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    return;
+                }
 
                 if (!response.ok) {
                     // バリデーションエラーの処理
-                    if (response.status === 422) {
+                    if (response.status === 422 && result.errors) {
                         const errors = result.errors;
                         let errorHtml = '<ul class="list-disc list-inside">';
                         
@@ -984,13 +1557,14 @@
                         // エラーメッセージまでスクロール
                         errorDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     } else {
-                        throw new Error('送信に失敗しました');
+                        throw new Error(result.message || '送信に失敗しました');
                     }
                 } else {
                     // 成功時の処理
                     window.location.href = result.redirect || '/quizzes';
                 }
             } catch (error) {
+                console.error('フォーム送信エラー:', error);
                 errorDiv.innerHTML = `<p>${error.message}</p>`;
                 errorDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
