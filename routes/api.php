@@ -26,3 +26,22 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/quizzes', function() {
     return \App\Models\Quiz::select('id', 'title')->get();
 });
+
+// クイズとその質問の詳細データを取得するAPI
+Route::get('/quizzes-with-questions', function() {
+    return \App\Models\Quiz::with(['questions' => function($query) {
+        $query->select(
+            'id',
+            'quiz_id',
+            'question_text',
+            'points',
+            'media_name',
+            'explanation_text',
+            'explanation_image_name',
+            'created_at',
+            'updated_at',
+            'next_quiz_id_correct',
+            'next_quiz_id_incorrect'
+        );
+    }])->get();
+});
