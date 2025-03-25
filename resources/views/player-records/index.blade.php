@@ -19,10 +19,13 @@
                                     <option value="">全てのユーザー</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}" {{ isset($filters['user_id']) && $filters['user_id'] == $user->id ? 'selected' : '' }}>
-                                            {{ $user->name }}
+                                            {{ $user->name }} {{ $user->id === auth()->id() ? '(あなた)' : '' }}
                                         </option>
                                     @endforeach
                                 </select>
+                                @if(!isset($filters['user_id']) || $filters['user_id'] == auth()->id())
+                                    <p class="text-xs text-gray-500 mt-1">※ デフォルトではあなたの成績のみ表示されます</p>
+                                @endif
                             </div>
                             
                             <div>

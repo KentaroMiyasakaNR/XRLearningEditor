@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('quizzes.index')" :active="request()->routeIs('quizzes.index')">
                         {{ __('クイズ一覧') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('player-records.user', auth()->user())" :active="request()->routeIs('player-records.user') && request()->route('user')->id === auth()->id()">
+                        {{ __('成績一覧') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('quizzes.create')" :active="request()->routeIs('quizzes.create')">
                         {{ __('問題作成') }}
                     </x-nav-link>
@@ -78,6 +81,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('quizzes.index')" :active="request()->routeIs('quizzes.index')">
                 {{ __('クイズ一覧') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('player-records.user', auth()->user())" :active="request()->routeIs('player-records.user') && request()->route('user')->id === auth()->id()">
+                {{ __('成績一覧') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('quizzes.create')" :active="request()->routeIs('quizzes.create')">
                 {{ __('問題作成') }}

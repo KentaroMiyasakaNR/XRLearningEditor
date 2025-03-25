@@ -23,6 +23,9 @@ class PlayerRecordsViewController extends Controller
         // フィルタリング
         if ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);
+        } else {
+            // デフォルトでログインユーザーの結果だけを表示
+            $query->where('user_id', auth()->id());
         }
         
         if ($request->filled('quiz_id')) {
@@ -43,7 +46,9 @@ class PlayerRecordsViewController extends Controller
             'records' => $records,
             'quizzes' => $quizzes,
             'users' => $users,
-            'filters' => $request->only(['user_id', 'quiz_id', 'from_date', 'to_date'])
+            'filters' => $request->filled('user_id') 
+                ? $request->only(['user_id', 'quiz_id', 'from_date', 'to_date']) 
+                : array_merge($request->only(['quiz_id', 'from_date', 'to_date']), ['user_id' => auth()->id()])
         ]);
     }
     
