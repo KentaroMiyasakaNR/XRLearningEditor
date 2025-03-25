@@ -13,6 +13,12 @@ return new class extends Migration
     {
         Schema::create('player_records', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('quiz_id')->constrained()->onDelete('cascade');
+            $table->string('vr_session_id')->nullable();
+            $table->timestamp('completed_at');
+            $table->integer('total_score');
+            $table->integer('time_taken')->nullable();
             $table->timestamps();
         });
     }
