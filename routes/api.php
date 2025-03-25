@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TweetController;
 use App\Http\Controllers\Api\TweetLikeController;
 use App\Http\Controllers\Api\CommentController;
+use App\Http\Controllers\Api\PlayerRecordsController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -52,3 +53,10 @@ Route::get('/quizzes-with-questions', function() {
         }]);
     }])->get();
 });
+
+// プレイヤーの成績管理API
+Route::post('/player-records', [PlayerRecordsController::class, 'store']);
+Route::get('/player-records', [PlayerRecordsController::class, 'index']);
+Route::get('/player-records/{playerRecord}', [PlayerRecordsController::class, 'show']);
+Route::get('/users/{user}/player-records', [PlayerRecordsController::class, 'userRecords']);
+Route::get('/quizzes/{quiz}/player-records', [PlayerRecordsController::class, 'quizRecords']);

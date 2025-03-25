@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\QuizController;
 use App\Http\Controllers\MediaController;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\PlayerRecordsViewController;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::get('/', function () {
@@ -74,5 +75,14 @@ Route::get('/test-media', function () {
         'image_files' => $imageUrls,
     ];
 });
+
+// プレイヤーの成績表示ルート
+Route::prefix('player-records')->group(function () {
+    Route::get('/', [PlayerRecordsViewController::class, 'index'])->name('player-records.index');
+    Route::get('/{playerRecord}', [PlayerRecordsViewController::class, 'show'])->name('player-records.show');
+});
+
+Route::get('/users/{user}/player-records', [PlayerRecordsViewController::class, 'userRecords'])->name('player-records.user');
+Route::get('/quizzes/{quiz}/player-records', [PlayerRecordsViewController::class, 'quizRecords'])->name('player-records.quiz');
 
 require __DIR__.'/auth.php';
