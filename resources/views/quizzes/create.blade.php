@@ -427,6 +427,14 @@
                                         <input type="text" name="title" id="title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="表示用のタイトル（省略可）">
                                     </div>
                                     
+                                    <div id="url-field" class="hidden">
+                                        <label for="url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">動画URL</label>
+                                        <input type="url" name="url" id="url" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="動画のURL（YouTube等）">
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            外部の動画URLがある場合に入力してください（YouTubeなど）
+                                        </p>
+                                    </div>
+                                    
                                     <div>
                                         <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
                                         <textarea name="description" id="description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="メディアの説明（省略可）"></textarea>
@@ -500,6 +508,13 @@
                                         <label for="edit-title" class="block text-sm font-medium text-gray-700 dark:text-gray-300">タイトル</label>
                                         <input type="text" name="title" id="edit-title" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500">
                                     </div>
+                                    <div id="edit-url-field" class="hidden">
+                                        <label for="edit-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">動画URL</label>
+                                        <input type="url" name="url" id="edit-url" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="動画のURL（YouTube等）">
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            外部の動画URLがある場合に入力してください（YouTubeなど）
+                                        </p>
+                                    </div>
                                     <div>
                                         <label for="edit-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300">説明</label>
                                         <textarea name="description" id="edit-description" rows="2" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 focus:ring-indigo-500"></textarea>
@@ -538,12 +553,32 @@
                         .replace(/\b\w/g, l => l.toUpperCase());  // 単語の先頭を大文字に
                     
                     titleInput.value = autoTitle;
+                    
+                    // メディアタイプが動画の場合、URL入力フィールドを表示
+                    const urlField = modal.querySelector('#url-field');
+                    if (mediaType === 'videos' && urlField) {
+                        urlField.classList.remove('hidden');
+                    } else if (urlField) {
+                        urlField.classList.add('hidden');
+                    }
                 } else if (this.files.length > 1) {
                     filenameInput.value = `${this.files.length}個のファイルが選択されています`;
                     titleInput.value = '';  // 複数選択時はタイトルをクリア
+                    
+                    // 複数選択時はURL入力フィールドを非表示
+                    const urlField = modal.querySelector('#url-field');
+                    if (urlField) {
+                        urlField.classList.add('hidden');
+                    }
                 } else {
                     filenameInput.value = '';
                     titleInput.value = '';
+                    
+                    // ファイルが選択されていない場合はURL入力フィールドを非表示
+                    const urlField = modal.querySelector('#url-field');
+                    if (urlField) {
+                        urlField.classList.add('hidden');
+                    }
                 }
             });
             
@@ -615,7 +650,8 @@
                                         filename: fileName,
                                         type: type,
                                         title: autoTitle,  // ファイル名から自動生成したタイトルを使用
-                                        description: description
+                                        description: description,
+                                        url: type === 'videos' ? formData.get('url') : null
                                     })
                                 });
                                 
@@ -678,7 +714,8 @@
                                 filename: formData.get('filename'),
                                 type: formData.get('type'),
                                 title: formData.get('title'),
-                                description: formData.get('description')
+                                description: formData.get('description'),
+                                url: formData.get('type') === 'videos' ? formData.get('url') : null
                             })
                         });
                         
@@ -1070,14 +1107,22 @@
                     const filenameInput = modal.querySelector('#edit-filename');
                     const titleInput = modal.querySelector('#edit-title');
                     const descriptionInput = modal.querySelector('#edit-description');
+                    const urlField = modal.querySelector('#edit-url-field');
+                    const urlInput = modal.querySelector('#edit-url');
                     
                     idInput.value = mediaItem.id;
                     filenameInput.value = mediaItem.filename;
                     titleInput.value = mediaItem.title || '';
-                    
-                    // 説明文はAPIレスポンスに含まれていない可能性があるため、別途取得が必要かもしれない
-                    // ここでは簡略化のため空文字を設定
                     descriptionInput.value = mediaItem.description || '';
+                    
+                    // メディアタイプが動画の場合、URLフィールドを表示
+                    if (mediaType === 'videos' && urlField) {
+                        urlField.classList.remove('hidden');
+                        urlInput.value = mediaItem.url || '';
+                    } else if (urlField) {
+                        urlField.classList.add('hidden');
+                        urlInput.value = '';
+                    }
                     
                     editForm.classList.remove('hidden');
                 } catch (error) {

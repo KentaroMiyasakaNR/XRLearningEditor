@@ -17,6 +17,7 @@ return new class extends Migration
             $table->enum('type', ['videos', 'images'])->comment('メディアタイプ');
             $table->string('title')->nullable()->comment('表示用タイトル');
             $table->text('description')->nullable()->comment('説明');
+            $table->string('url')->nullable()->comment('動画URL');
             $table->foreignId('user_id')->nullable()->constrained()->onDelete('set null')->comment('登録ユーザーID');
             $table->timestamps();
             

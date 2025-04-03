@@ -26,6 +26,7 @@ class Media extends Model
         'type',
         'title',
         'description',
+        'url',
         'user_id',
     ];
 

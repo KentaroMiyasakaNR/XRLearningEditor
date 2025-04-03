@@ -32,17 +32,40 @@
                                 
                                 @if ($question->media_name)
                                 <div class="mb-4">
-                                    <video 
-                                        src="{{ $question->media_url }}" 
-                                        class="w-full max-h-96 object-contain" 
-                                        controls
-                                        controlsList="nodownload"
-                                        preload="metadata"
-                                        playsinline
-                                        oncontextmenu="return false;"
-                                    >
-                                        お使いのブラウザは動画再生をサポートしていません。
-                                    </video>
+                                    @php
+                                        $isYoutubeUrl = preg_match('/youtube\.com|youtu\.be/', $question->media_url);
+                                        $youtubeId = null;
+                                        
+                                        if ($isYoutubeUrl) {
+                                            // YouTubeのURLからIDを抽出
+                                            preg_match('/(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $question->media_url, $matches);
+                                            $youtubeId = $matches[1] ?? null;
+                                        }
+                                    @endphp
+                                    
+                                    @if ($isYoutubeUrl && $youtubeId)
+                                        <div class="aspect-w-16 aspect-h-9">
+                                            <iframe 
+                                                src="https://www.youtube.com/embed/{{ $youtubeId }}" 
+                                                class="w-full h-full max-h-96"
+                                                frameborder="0" 
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                                allowfullscreen
+                                            ></iframe>
+                                        </div>
+                                    @else
+                                        <video 
+                                            src="{{ $question->media_url }}" 
+                                            class="w-full max-h-96 object-contain" 
+                                            controls
+                                            controlsList="nodownload"
+                                            preload="metadata"
+                                            playsinline
+                                            oncontextmenu="return false;"
+                                        >
+                                            お使いのブラウザは動画再生をサポートしていません。
+                                        </video>
+                                    @endif
                                 </div>
                                 @endif
                                 

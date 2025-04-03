@@ -30,9 +30,23 @@ class MediaController extends Controller
             // 環境情報をログに記録（デバッグ用）
             Log::info('メディア一覧取得: 環境 = ' . app()->environment());
             
-            // データベースからメディア情報を取得
-            $videos = Media::where('type', 'videos')->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
-            $images = Media::where('type', 'images')->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
+            // 現在のログインユーザーIDを取得
+            $userId = Auth::id();
+            
+            // データベースからログインユーザーに紐づくメディア情報とuser_idがnullのメディアを取得
+            $videos = Media::where('type', 'videos')
+                         ->where(function($query) use ($userId) {
+                             $query->where('user_id', $userId)
+                                   ->orWhereNull('user_id');
+                         })
+                         ->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
+                         
+            $images = Media::where('type', 'images')
+                         ->where(function($query) use ($userId) {
+                             $query->where('user_id', $userId)
+                                   ->orWhereNull('user_id');
+                         })
+                         ->get(['id', 'filename', 'title', 'description', 'created_at', 'updated_at']);
 
             return response()->json([
                 'videos' => $videos,
@@ -73,12 +87,15 @@ class MediaController extends Controller
                 'type' => 'required|in:videos,images',
                 'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'url' => 'nullable|url|max:2048',
             ], [
                 'filename.required' => 'ファイル名は必須です。',
                 'filename.max' => 'ファイル名は255文字以内で入力してください。',
                 'type.required' => 'メディアタイプは必須です。',
                 'type.in' => '無効なメディアタイプです。',
                 'title.max' => 'タイトルは255文字以内で入力してください。',
+                'url.url' => '有効なURLを入力してください。',
+                'url.max' => 'URLは2048文字以内で入力してください。',
             ]);
 
             // 既存のエントリを確認
@@ -99,6 +116,7 @@ class MediaController extends Controller
                 'type' => $request->type,
                 'title' => $request->title ?? $request->filename,
                 'description' => $request->description,
+                'url' => $request->url,
                 'user_id' => Auth::id(),
             ]);
 
@@ -174,12 +192,15 @@ class MediaController extends Controller
                 'filename' => 'required|string|max:255',
                 'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
+                'url' => 'nullable|url|max:2048',
             ], [
                 'id.required' => 'メディアIDは必須です。',
                 'id.exists' => '指定されたメディアIDは存在しません。',
                 'filename.required' => 'ファイル名は必須です。',
                 'filename.max' => 'ファイル名は255文字以内で入力してください。',
                 'title.max' => 'タイトルは255文字以内で入力してください。',
+                'url.url' => '有効なURLを入力してください。',
+                'url.max' => 'URLは2048文字以内で入力してください。',
             ]);
 
             $media = Media::findOrFail($request->id);
@@ -201,6 +222,7 @@ class MediaController extends Controller
                 'filename' => $request->filename,
                 'title' => $request->title ?? $request->filename,
                 'description' => $request->description,
+                'url' => $request->url,
             ]);
 
             Log::info('メディア情報を更新しました', ['id' => $media->id, 'filename' => $media->filename]);
