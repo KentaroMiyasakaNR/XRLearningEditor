@@ -60,3 +60,32 @@ Route::get('/player-records', [PlayerRecordsController::class, 'index']);
 Route::get('/player-records/{playerRecord}', [PlayerRecordsController::class, 'show']);
 Route::get('/users/{user}/player-records', [PlayerRecordsController::class, 'userRecords']);
 Route::get('/quizzes/{quiz}/player-records', [PlayerRecordsController::class, 'quizRecords']);
+
+// ユーザー名を投げて、そのユーザーが作成したクイズとquestionsを全て返すAPI
+Route::get('/users/{username}/quizzes', function($username) {
+    $user = \App\Models\User::where('name', $username)->firstOrFail();
+    
+    return \App\Models\Quiz::where('user_id', $user->id)
+        ->with(['questions' => function($query) {
+            $query->select(
+                'id',
+                'quiz_id',
+                'question_text',
+                'points',
+                'media_name',
+                'explanation_text',
+                'explanation_image_name',
+                'created_at',
+                'updated_at',
+                'next_quiz_id_correct',
+                'next_quiz_id_incorrect'
+            )->with(['options' => function($optionQuery) {
+                $optionQuery->select(
+                    'id',
+                    'question_id',
+                    'option_text',
+                    'is_correct'
+                );
+            }]);
+        }])->get();
+});
